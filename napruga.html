@@ -1,0 +1,1135 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Напруга — стрес і шлях назад</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --night:#0B1424;--deep:#13233A;--line:#22324D;--coral:#FF5A3C;--amber:#FFB547;--teal:#27C2A7;--paper:#F3EDE2;--grey:#8A94A6;--ink:#0B1424;
+  color-scheme:dark;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--night:#0B1424;--deep:#13233A;--paper:#F3EDE2}}
+:root[data-theme="dark"]{--night:#0B1424;--deep:#13233A;--paper:#F3EDE2}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;background:#060C16;overflow:hidden;color:var(--paper)}
+body{font-family:Manrope,"Segoe UI",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.U{font-family:Unbounded,"Arial Black",Impact,sans-serif}
+.M{font-family:"JetBrains Mono",Consolas,"Courier New",monospace}
+
+#stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;background:var(--night);overflow:hidden;transform-origin:50% 50%;cursor:default;user-select:none}
+#fx{position:absolute;inset:0;width:1920px;height:1080px;pointer-events:none;z-index:1}
+#grain{position:absolute;inset:-50%;z-index:2;pointer-events:none;opacity:.05;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");animation:grain 1s steps(4) infinite}
+@keyframes grain{0%{transform:translate(0,0)}25%{transform:translate(-3%,2%)}50%{transform:translate(2%,-3%)}75%{transform:translate(-2%,-1%)}}
+#tint{position:absolute;inset:0;z-index:2;pointer-events:none;transition:background 1s}
+#meter{position:absolute;right:46px;top:96px;bottom:200px;width:8px;border-radius:4px;background:rgba(255,255,255,.07);z-index:20;overflow:hidden}
+#meterFill{position:absolute;left:0;right:0;bottom:0;border-radius:4px;transition:height 1.1s cubic-bezier(.7,0,.2,1),background 1.1s}
+#count{position:absolute;right:70px;top:52px;z-index:20;font-size:18px;color:var(--grey);letter-spacing:.06em}
+#dots{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);display:flex;gap:10px;z-index:30;opacity:0;transition:opacity .4s}
+#stage:hover #dots{opacity:.9}
+#dots button{width:12px;height:12px;border-radius:50%;border:0;padding:0;background:rgba(243,237,226,.25);cursor:pointer}
+#dots button.on{background:var(--paper)}
+#dots button:focus-visible,button:focus-visible,input:focus-visible{outline:3px solid var(--amber);outline-offset:3px}
+#blackout{position:absolute;inset:0;background:#000;z-index:60;opacity:0;pointer-events:none;transition:opacity .6s}
+#blackout.on{opacity:1}
+#hint{position:absolute;left:50%;top:52px;transform:translateX(-50%);z-index:30;font-size:17px;color:var(--grey);transition:opacity .8s;white-space:nowrap}
+#notes{position:absolute;left:0;right:0;bottom:0;z-index:70;background:rgba(6,12,22,.94);border-top:2px solid var(--teal);padding:26px 130px 34px;font-size:24px;line-height:1.55;color:var(--paper);transform:translateY(100%);transition:transform .4s;max-height:46%;overflow:auto}
+#notes.on{transform:none}
+#notes .k{font-family:"JetBrains Mono",monospace;font-size:15px;font-weight:800;border-radius:5px;padding:2px 8px;margin:0 3px;white-space:nowrap}
+#notes .k.c{background:var(--coral);color:#fff}#notes .k.n{background:var(--paper);color:var(--ink)}#notes .k.a{background:var(--amber);color:var(--ink)}#notes .k.p{background:#3a4558;color:#fff}
+#help{position:absolute;inset:0;z-index:80;background:rgba(6,12,22,.92);display:none;align-items:center;justify-content:center}
+#help.on{display:flex}
+#help .box{background:var(--deep);border-radius:22px;padding:50px 64px;font-size:26px;line-height:1.9;max-width:1100px}
+#help b{font-family:"JetBrains Mono",monospace;color:var(--amber);font-weight:800}
+
+/* slides */
+.slide{position:absolute;inset:0;z-index:10;padding:110px 150px 0 130px;opacity:0;pointer-events:none;transform:scaleY(.015);transform-origin:50% 88%;filter:blur(10px);transition:transform .75s cubic-bezier(.7,0,.2,1),opacity .55s,filter .75s}
+.slide.active{opacity:1;transform:none;filter:none;pointer-events:auto}
+.slide.desat{filter:saturate(.25) brightness(.85)}
+[data-step]{opacity:0;transform:translateY(18px);transition:opacity .55s,transform .65s cubic-bezier(.2,.7,.2,1)}
+[data-step].on{opacity:1;transform:none}
+.h{font-family:Unbounded,"Arial Black",sans-serif;font-weight:800;font-size:68px;line-height:1.08;margin:0;letter-spacing:-.01em}
+.lead{font-size:30px;line-height:1.45;color:var(--paper)}
+.muted{color:var(--grey)}
+.src{position:absolute;left:130px;bottom:150px;font-family:"JetBrains Mono",monospace;font-size:15px;color:var(--grey)}
+.abs{position:absolute}
+.pill{display:inline-block;border:1.5px solid rgba(243,237,226,.35);border-radius:40px;padding:8px 20px;font-size:22px;white-space:nowrap}
+.stage-chip{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:34px;padding:0 10px;border-radius:17px;font:800 16px "JetBrains Mono",monospace;background:#26344d;color:var(--grey)}
+.shake{animation:shake .35s linear}
+@keyframes shake{20%{transform:translate(-9px,4px)}40%{transform:translate(8px,-5px)}60%{transform:translate(-6px,-3px)}80%{transform:translate(5px,3px)}}
+
+/* S1 */
+#s1 .mega{position:absolute;left:0;right:0;top:290px;margin:0;text-align:center;font-family:Unbounded,sans-serif;font-weight:900;font-size:230px;letter-spacing:.02em;line-height:1}
+#s1 .mega span{display:inline-block;opacity:0}
+#s1.active .mega span{animation:letIn .7s cubic-bezier(.2,.7,.2,1) var(--d) both,jit .07s linear calc(var(--d) + .7s) 26 alternate}
+@keyframes letIn{from{opacity:0;transform:translateY(60px) scaleY(1.3)}to{opacity:1;transform:none}}
+@keyframes jit{from{transform:translate(-1.5px,1px)}to{transform:translate(1.5px,-1px)}}
+#s1 .sub{position:absolute;left:0;right:0;top:560px;text-align:center;font-size:38px;font-weight:500;color:var(--grey)}
+#s1 .corner{position:absolute;bottom:62px;font-family:"JetBrains Mono",monospace;font-size:18px;color:var(--grey)}
+#speaker{outline:none;border-bottom:1px dashed transparent;cursor:text}
+#speaker:hover,#speaker:focus{border-bottom-color:var(--grey)}
+
+/* S2 */
+#s2 .q{position:absolute;left:180px;right:180px;top:240px;text-align:center;transition:transform .9s cubic-bezier(.7,0,.2,1)}
+#s2 .q.up{transform:translateY(-90px) scale(.72)}
+#s2 .q .h{font-size:92px;line-height:1.15}
+#s2 .q .w{display:inline-block;opacity:0;transform:translateY(20px);transition:opacity .4s,transform .5s;transition-delay:calc(var(--i)*.16s)}
+#s2 .q.on .w{opacity:1;transform:none}
+#s2 .by{margin-top:34px;font-size:24px;color:var(--amber);opacity:0;transition:opacity .6s 1.3s}
+#s2 .q.on .by{opacity:1}
+#s2 .ask{position:absolute;left:0;right:0;top:560px;text-align:center}
+#s2 .ask .h{font-size:64px}
+#sound{position:absolute;left:130px;bottom:64px;background:none;border:1.5px solid rgba(243,237,226,.3);color:var(--grey);border-radius:30px;padding:8px 18px;font:600 17px Manrope,sans-serif;cursor:pointer}
+
+/* S3 */
+#s3 .grid{position:absolute;inset:0;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:48px 48px;opacity:.55}
+#s3 .word{font-size:150px;font-weight:900}
+#bridge{position:absolute;left:260px;top:300px;width:1240px;height:520px;overflow:visible}
+#bridge .crack{stroke-dasharray:200;stroke-dashoffset:200;transition:stroke-dashoffset 1.2s .4s}
+#s3.cracked #bridge .crack{stroke-dashoffset:0}
+#bridge .deck{transition:stroke .8s,filter .8s}
+#s3.glow #bridge .deck,#s3.glow #bridge .pier{stroke:var(--teal);filter:drop-shadow(0 0 14px rgba(39,194,167,.7))}
+#gauge{position:absolute;right:170px;top:330px;width:34px;height:380px;border:2px solid rgba(243,237,226,.4);border-radius:6px;overflow:hidden}
+#gaugeFill{position:absolute;left:0;right:0;bottom:0;transition:height 1.2s cubic-bezier(.7,0,.2,1),background 1.2s}
+#gaugeTxt{position:absolute;right:120px;top:730px;width:140px;text-align:center;font-size:20px;color:var(--grey)}
+
+/* S4 */
+#s4 .tl{position:absolute;left:130px;right:170px;top:600px;height:3px;background:rgba(243,237,226,.35);transform:scaleX(0);transform-origin:left;transition:transform 1.4s cubic-bezier(.7,0,.2,1)}
+#s4.active .tl{transform:scaleX(1)}
+.node{position:absolute;top:586px;width:250px}
+.node .dot{width:30px;height:30px;border-radius:50%;background:var(--c);box-shadow:0 0 0 0 var(--c)}
+.node.on .dot{animation:ring 1.6s ease-out}
+@keyframes ring{from{box-shadow:0 0 0 0 var(--c)}to{box-shadow:0 0 0 34px transparent}}
+.node .y{font:800 46px "JetBrains Mono",monospace;margin-top:22px}
+.node .n{font-weight:800;font-size:23px;margin-top:6px}
+.node .f{font-size:21px;color:var(--grey);margin-top:4px;line-height:1.35}
+.era{position:absolute;top:470px;height:56px;border-top:4px solid var(--c);border-left:2px solid var(--c);border-right:2px solid var(--c);border-radius:14px 14px 0 0;padding:12px 18px;font:800 18px "JetBrains Mono",monospace;letter-spacing:.12em;color:var(--c)}
+.node.hl .y{color:var(--teal);text-shadow:0 0 24px rgba(39,194,167,.6)}
+
+/* S5 */
+#scale{position:absolute;left:0;top:-70px;width:1920px;height:1080px;overflow:visible;pointer-events:none}
+#scale .cube{transform:translateY(-700px);opacity:0;transition:transform .9s cubic-bezier(.3,1.5,.5,1),opacity .3s}
+#scale .cube.in{transform:none;opacity:1}
+#s5 .state{position:absolute;left:0;right:0;top:745px;text-align:center;font-size:76px;font-weight:900;opacity:0;transition:opacity .5s,color .5s}
+#s5 .state.on{opacity:1}
+
+/* S6 */
+.cnode{position:absolute;top:250px;width:290px;height:290px;border-radius:50%;border:3px solid var(--paper);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.cnode .t{font-family:Unbounded,sans-serif;font-weight:800;font-size:34px}
+.cnode .s{font-size:24px;color:var(--grey);margin-top:10px}
+.arrow{position:absolute;top:393px;height:3px;background:rgba(243,237,226,.3);overflow:visible}
+.arrow::after{content:"";position:absolute;right:-4px;top:-9px;border:10px solid transparent;border-left:14px solid rgba(243,237,226,.5)}
+.arrow i{position:absolute;top:-5px;width:13px;height:13px;border-radius:50%;background:var(--amber);box-shadow:0 0 18px var(--amber);animation:spark 1.8s linear infinite}
+@keyframes spark{from{left:0}to{left:100%}}
+.rtile{position:absolute;left:1520px;width:220px;padding:14px 22px;border-radius:14px;background:var(--deep);font-size:24px;font-weight:700;border-left:5px solid var(--teal)}
+#s6 .def{position:absolute;left:130px;top:640px;width:1240px;border:1.5px solid rgba(243,237,226,.3);border-radius:18px;padding:26px 32px;font-size:28px;line-height:1.45}
+
+/* S7 */
+#gas{position:absolute;left:130px;top:190px;width:1630px;height:640px;overflow:visible}
+#gas .seg{fill:none;stroke:var(--paper);stroke-width:7;stroke-linecap:round;transition:stroke-dashoffset 1.4s cubic-bezier(.5,0,.3,1)}
+#gas .exit{fill:none;stroke:var(--teal);stroke-width:6;stroke-dasharray:18 14;transition:opacity 1s}
+#s7 .msg{position:absolute;font-weight:800}
+
+/* S8 */
+#yd{position:absolute;left:260px;top:250px;width:1400px;height:520px;overflow:visible}
+#ydRange{position:absolute;left:310px;top:800px;width:1300px;-webkit-appearance:none;appearance:none;height:16px;border-radius:8px;background:linear-gradient(90deg,#5b6577,var(--teal),var(--coral));cursor:pointer}
+#ydRange::-webkit-slider-thumb{-webkit-appearance:none;width:52px;height:52px;border-radius:50%;background:var(--paper);box-shadow:0 0 0 8px rgba(243,237,226,.18)}
+#ydRange::-moz-range-thumb{width:52px;height:52px;border-radius:50%;background:var(--paper);border:0}
+#ydLabel{position:absolute;text-align:center;width:640px;font-family:Unbounded,sans-serif;font-weight:800;font-size:38px;transition:color .3s;pointer-events:none}
+#ydSub{display:block;font-family:Manrope,sans-serif;font-weight:600;font-size:24px;color:var(--grey);margin-top:6px}
+#s8 .fact{position:absolute;right:130px;top:110px;width:520px;border:2px solid var(--amber);border-radius:18px;padding:22px 26px;font-size:23px;line-height:1.45;background:rgba(19,35,58,.85)}
+
+/* S9 */
+#chips{position:absolute;left:130px;top:250px;width:980px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.chip{display:flex;justify-content:space-between;align-items:center;padding:18px 24px;border-radius:14px;background:var(--deep);border:2px solid #24365a;font:600 25px Manrope,sans-serif;color:var(--paper);cursor:pointer;transition:transform .2s,background .3s,border-color .3s;text-align:left}
+.chip b{font:800 28px "JetBrains Mono",monospace;color:var(--amber)}
+.chip:hover{transform:translateY(-3px)}
+.chip.sel{background:#3a2b1d;border-color:var(--amber)}
+#sum{position:absolute;left:1190px;top:470px;font:800 190px "JetBrains Mono",monospace;line-height:1;transition:color .5s}
+#sumCap{position:absolute;left:1196px;top:670px;font-size:24px;color:var(--grey)}
+#thermo{position:absolute;left:1600px;top:250px;width:46px;height:560px;border:2px solid rgba(243,237,226,.4);border-radius:23px;overflow:hidden}
+#thermoFill{position:absolute;left:0;right:0;bottom:0;transition:height .6s cubic-bezier(.3,1.3,.5,1),background .5s}
+#mark300{position:absolute;left:1580px;width:86px;height:3px;background:var(--coral)}
+#mark300cap{position:absolute;left:1190px;width:380px;text-align:right;font-size:19px;color:var(--coral);line-height:1.3}
+#reset{position:absolute;left:130px;top:830px;background:none;border:1.5px solid rgba(243,237,226,.3);color:var(--grey);border-radius:30px;padding:8px 22px;font:600 19px Manrope,sans-serif;cursor:pointer}
+#s9 .stamp{position:absolute;left:520px;top:600px;border:6px solid var(--coral);color:var(--coral);padding:18px 30px;font-family:Unbounded,sans-serif;font-weight:900;font-size:40px;line-height:1.15;transform:rotate(-8deg) scale(1.6);opacity:0;transition:transform .35s cubic-bezier(.3,1.6,.5,1),opacity .2s;background:rgba(11,20,36,.85)}
+#s9 .stamp.on{transform:rotate(-8deg) scale(1);opacity:1}
+
+/* S10 */
+#grid100{position:absolute;left:130px;top:250px;display:grid;grid-template-columns:repeat(10,38px);gap:18px}
+#grid100 i{width:38px;height:38px;border-radius:50%;background:#2a3850;transition:background .5s,transform .6s}
+#grid100 i.c{background:var(--coral)}#grid100 i.a{background:var(--amber)}
+#grid100 i.leave{animation:leave 1.1s ease-in-out infinite alternate}
+@keyframes leave{to{transform:translateX(9px);opacity:.55}}
+.stat{position:absolute;left:870px;display:grid;grid-template-columns:400px 480px;align-items:center;gap:20px}
+.stat .v{font:800 88px "JetBrains Mono",monospace;line-height:1;white-space:nowrap}
+.stat .l{font-size:27px;line-height:1.35;max-width:560px}
+
+/* S11 */
+.bar{position:absolute;bottom:300px;width:200px;border-radius:10px 10px 0 0;transition:height 1.2s cubic-bezier(.7,0,.2,1),background 1s}
+.ghost{position:absolute;bottom:300px;width:200px;border:3px dashed rgba(138,148,166,.7);border-bottom:0;border-radius:10px 10px 0 0;transition:height 1s,opacity .6s;opacity:0}
+.bval{position:absolute;width:200px;text-align:center;font:800 44px "JetBrains Mono",monospace;transition:bottom 1.2s cubic-bezier(.7,0,.2,1)}
+.blab{position:absolute;bottom:236px;width:300px;text-align:center;font-size:24px;color:var(--grey)}
+#s11 .better{position:absolute;font-weight:800;font-size:30px;color:var(--teal)}
+#s11 .better s{text-decoration:none;position:relative}
+#s11 .better s::after{content:"";position:absolute;left:-6px;right:-6px;top:52%;height:5px;background:var(--coral);transform:scaleX(0);transform-origin:left;transition:transform .5s}
+#s11.strike .better s::after{transform:scaleX(1)}
+
+/* S12 */
+#s12 .vig{position:absolute;inset:0;box-shadow:inset 0 0 260px rgba(255,90,60,.4);pointer-events:none}
+.tiles{position:absolute;left:130px;top:250px;display:grid;grid-template-columns:780px 780px;gap:28px;perspective:1600px}
+.tile{height:250px;position:relative;transform-style:preserve-3d;transition:transform .9s cubic-bezier(.7,0,.2,1)}
+.tile.flipped{transform:rotateY(180deg)}
+.tile .f,.tile .b{position:absolute;inset:0;border-radius:22px;backface-visibility:hidden;-webkit-backface-visibility:hidden;padding:34px 40px}
+.tile .f{background:repeating-linear-gradient(135deg,var(--deep) 0 22px,#16294a 22px 44px);display:flex;align-items:center;justify-content:center;font:800 70px "JetBrains Mono",monospace;color:#2d4166}
+.tile .b{background:var(--deep);transform:rotateY(180deg);border:2px solid rgba(255,90,60,.4)}
+.tile .b .v{font:800 92px "JetBrains Mono",monospace;color:var(--coral);line-height:1}
+.tile .b .l{font-size:25px;margin-top:16px;line-height:1.35}
+#stage.glitch .slide.active{animation:glitch .5s steps(2) 1}
+@keyframes glitch{0%{transform:translate(0);text-shadow:6px 0 var(--coral),-6px 0 var(--teal);clip-path:inset(10% 0 60% 0)}25%{transform:translate(-14px,4px);clip-path:inset(40% 0 20% 0)}50%{transform:translate(12px,-6px);clip-path:inset(70% 0 5% 0)}75%{transform:translate(-6px,2px);clip-path:inset(0 0 80% 0)}100%{transform:translate(0);clip-path:inset(0)}}
+
+/* S13 */
+.stair{position:absolute;width:300px;height:190px;border-radius:20px;padding:22px 26px;cursor:pointer;color:#fff;transition:transform .7s cubic-bezier(.3,1.4,.5,1),opacity .5s;transition-delay:calc(var(--i)*.16s)}
+.stair:hover{filter:brightness(1.12)}
+.stair .n{font-family:Unbounded,sans-serif;font-weight:900;font-size:56px;line-height:1}
+.stair .t{font-family:Unbounded,sans-serif;font-weight:700;font-size:23px;margin-top:14px;line-height:1.2}
+.stair .q{position:absolute;left:0;top:206px;width:300px;font-size:20px;font-style:italic;color:var(--grey);line-height:1.35}
+.stair[data-step]{transform:translateY(120px)}
+.stair[data-step].on{transform:none}
+
+/* S14 */
+#s14 .ghostnum{position:absolute;left:90px;top:160px;font-family:Unbounded,sans-serif;font-weight:900;font-size:420px;color:var(--coral);opacity:.12;line-height:1}
+#body{position:absolute;left:820px;top:220px;width:280px;height:620px}
+#scanner{position:absolute;left:730px;width:460px;height:6px;background:var(--teal);box-shadow:0 0 30px 6px rgba(39,194,167,.55);top:220px;transition:top 1s cubic-bezier(.7,0,.2,1);opacity:0}
+#s14.scanning #scanner{opacity:1}
+.sig{position:absolute;width:520px}
+.sig .k{font-family:Unbounded,sans-serif;font-weight:800;font-size:30px;color:var(--teal)}
+.sig .d{font-size:25px;line-height:1.4;margin-top:6px}
+.sig .ln{position:absolute;top:22px;height:2px;background:var(--teal)}
+
+/* S15 */
+#breath{position:absolute;left:660px;top:190px;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(39,194,167,.85),rgba(39,194,167,.12) 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;transform:scale(.55);box-shadow:0 0 120px rgba(39,194,167,.35)}
+#breathTxt{font-family:Unbounded,sans-serif;font-weight:800;font-size:58px;color:var(--ink)}
+#breathN{font:800 30px "JetBrains Mono",monospace;color:var(--ink);margin-top:8px}
+#s15 .dimmable{transition:opacity .8s}
+#s15.breathing .dimmable{opacity:.15}
+#s15 .chips{position:absolute;left:0;right:0;top:830px;display:flex;justify-content:center;gap:14px;opacity:0;transition:opacity .8s}
+#s15.done .chips{opacity:1}
+#again{position:absolute;right:140px;top:830px;background:none;border:1.5px solid rgba(243,237,226,.3);color:var(--grey);border-radius:30px;padding:8px 22px;font:600 19px Manrope,sans-serif;cursor:pointer;opacity:0;transition:opacity .5s}
+#s15.done #again{opacity:1}
+#s15 .note{position:absolute;left:0;right:0;top:770px;text-align:center;font-size:22px;color:var(--grey);opacity:0;transition:opacity .8s .3s}
+#s15.done .note{opacity:1}
+
+/* S16 */
+#ring{position:absolute;left:640px;top:240px;width:640px;height:640px;border-radius:50%;border:2.5px dashed rgba(138,148,166,.6)}
+#core{position:absolute;left:810px;top:410px;width:300px;height:300px;border-radius:50%;border:3px solid var(--teal);background:rgba(39,194,167,.08);transition:background .8s,box-shadow .8s;display:flex;align-items:flex-end;justify-content:center;padding-bottom:22px}
+#s16.mine #core{background:rgba(39,194,167,.22);box-shadow:0 0 90px rgba(39,194,167,.45)}
+#core span{font-family:Unbounded,sans-serif;font-weight:800;font-size:26px;color:var(--teal)}
+#notMine{position:absolute;left:1180px;top:252px;font:800 18px "JetBrains Mono",monospace;color:var(--grey);letter-spacing:.1em}
+.drag{position:absolute;padding:12px 22px;border-radius:30px;background:var(--deep);border:2px solid #2d4166;font-size:22px;font-weight:700;white-space:nowrap;cursor:grab;transition:left 1s cubic-bezier(.7,0,.2,1),top 1s cubic-bezier(.7,0,.2,1),border-color .6s;transform:translate(-50%,-50%);animation:float 4s ease-in-out infinite alternate;animation-delay:var(--fd)}
+.drag.dragging{transition:none;cursor:grabbing;z-index:5}
+.drag.isMine{border-color:var(--teal)}
+@keyframes float{to{margin-top:-10px}}
+.plaque{position:absolute;left:130px;width:440px;padding:20px 24px;border-radius:16px;background:var(--deep);font-size:23px;line-height:1.4}
+.plaque b{display:block;font-family:Unbounded,sans-serif;font-size:24px;margin-bottom:6px}
+
+/* S17 */
+.hex{position:absolute;width:190px;height:166px;clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);background:var(--teal);color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:transform .3s,background .3s}
+.hex:hover,.hex.act{transform:translateY(-10px);background:#5be0c6}
+.hex b{font-family:Unbounded,sans-serif;font-weight:900;font-size:44px;line-height:1}
+.hex span{font-size:19px;font-weight:800;margin-top:4px}
+#hexInfo{position:absolute;left:130px;top:760px;width:760px;font-size:23px;line-height:1.4;min-height:70px}
+#hexInfo b{color:var(--teal)}
+#s17 .rec{position:absolute;left:130px;top:240px;display:flex;gap:12px;flex-wrap:wrap;width:800px}
+#s17 .right{position:absolute;left:1040px;top:240px;width:720px;height:600px;border-left:2px solid rgba(138,148,166,.3);padding-left:60px}
+.spark{position:absolute;font-size:26px;font-weight:700;color:var(--amber);white-space:nowrap}
+#s17 .right.on .spark{animation:rise 1.2s cubic-bezier(.2,.7,.2,1) both;animation-delay:var(--sd)}
+@keyframes rise{from{opacity:0;transform:translateY(60px)}to{opacity:1;transform:none}}
+.fly{position:absolute;width:6px;height:6px;border-radius:50%;background:var(--amber);box-shadow:0 0 12px var(--amber);animation:fly var(--t) linear infinite;animation-delay:var(--dl);opacity:0}
+@keyframes fly{0%{transform:translateY(0);opacity:0}15%{opacity:.9}100%{transform:translateY(-520px);opacity:0}}
+
+/* S18 */
+#signal{position:absolute;right:150px;top:120px;display:flex;align-items:flex-end;gap:10px}
+#signal i{width:22px;border-radius:4px;background:var(--teal);transition:background .5s,opacity .5s}
+#signal i.off{background:#2a3850}
+#s18 .big{position:absolute;right:150px;top:250px;font:800 80px "JetBrains Mono",monospace;text-align:right;line-height:1}
+#s18 .bigl{position:absolute;right:150px;top:340px;font-size:23px;color:var(--grey);text-align:right}
+#s18 .tl{position:absolute;left:130px;right:170px;top:520px;height:3px;background:rgba(243,237,226,.3)}
+.ev{position:absolute;top:505px;width:240px}
+.ev .dot{width:32px;height:32px;border-radius:50%;background:var(--c)}
+.ev .d{font:800 30px "JetBrains Mono",monospace;margin-top:18px}
+.ev .t{font-size:21px;line-height:1.35;margin-top:6px}
+.ev .stage-chip{margin-top:12px;background:var(--c);color:var(--ink)}
+#s18 .fact{position:absolute;left:130px;top:830px;font-size:20px;color:var(--grey)}
+#flash{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;z-index:40;transition:opacity .25s}
+
+/* S19 */
+.cards{position:absolute;left:150px;top:240px;display:flex;gap:40px;perspective:1800px}
+.card{width:370px;height:470px;position:relative;transform-style:preserve-3d;transition:transform .9s cubic-bezier(.7,0,.2,1)}
+.card.flipped{transform:rotateY(180deg)}
+.card .f,.card .b{position:absolute;inset:0;border-radius:24px;backface-visibility:hidden;-webkit-backface-visibility:hidden;padding:34px 30px}
+.card .f{background:var(--deep);border:2px solid #24365a;display:flex;flex-direction:column;justify-content:space-between}
+.card .f .nm{font-family:Unbounded,sans-serif;font-weight:800;font-size:32px;line-height:1.15}
+.card .f .q{font:800 120px "JetBrains Mono",monospace;color:#24365a;line-height:1}
+.card .b{background:linear-gradient(160deg,#173052,var(--deep));transform:rotateY(180deg);border:2px solid rgba(39,194,167,.45)}
+.card .b .nm{font-size:22px;color:var(--grey);font-weight:700}
+.card .b .v{font:800 66px "JetBrains Mono",monospace;color:var(--teal);margin-top:14px;line-height:1.05}
+.card .b .l{font-size:22px;line-height:1.4;margin-top:16px}
+.card .b .st{position:absolute;left:30px;bottom:30px;display:flex;gap:8px}
+.card .b .st .stage-chip.lit{background:var(--teal);color:var(--ink)}
+#s19.audit .stage-chip.s5{box-shadow:0 0 0 3px var(--coral)}
+#s19 .sum{position:absolute;left:150px;top:770px;font-family:Unbounded,sans-serif;font-weight:700;font-size:40px;color:var(--amber)}
+
+/* S20 */
+.thesis{position:absolute;left:130px;display:flex;gap:34px;align-items:baseline;transition:opacity .8s,transform .8s}
+.thesis .n{font-family:Unbounded,sans-serif;font-weight:900;font-size:80px;color:var(--teal);line-height:1;width:80px}
+.thesis .t{font-family:Unbounded,sans-serif;font-weight:700;font-size:44px;line-height:1.2;max-width:1300px}
+.thesis .t small{display:block;font-family:Manrope,sans-serif;font-weight:500;font-size:26px;color:var(--grey);margin-top:10px}
+#s20.finale .thesis{opacity:0!important;transform:translateY(-30px)!important}
+#s20 .final{position:absolute;left:0;right:0;top:330px;text-align:center;opacity:0;transition:opacity 1.4s .5s,transform 1.4s .5s;transform:translateY(30px);pointer-events:none}
+#s20.finale .final{opacity:1;transform:none}
+#s20 .final .h{font-size:76px;line-height:1.2}
+#s20 .final .thx{font-size:40px;font-weight:700;color:var(--teal);margin-top:40px}
+#s20 .dawn{position:absolute;inset:0;background:linear-gradient(0deg,rgba(39,194,167,.28),transparent 55%);opacity:0;transition:opacity 2.4s}
+#s20.finale .dawn{opacity:1}
+
+@media (prefers-reduced-motion:reduce){
+  .slide{transition:opacity .3s!important;transform:none!important;filter:none!important}
+  #s1.active .mega span{animation:none;opacity:1}
+  #grain,.drag,.arrow i,.fly,#grid100 i.leave{animation:none!important}
+}
+</style>
+</head>
+<body>
+<div id="stage" aria-live="polite">
+  <canvas id="fx" width="1920" height="1080"></canvas>
+  <div id="grain"></div>
+  <div id="tint"></div>
+
+  <!-- 1 -->
+  <section class="slide" id="s1" data-stress="15" data-steps="0" aria-label="Титул">
+    <h1 class="mega" aria-label="Напруга">НАПРУГА</h1>
+    <div class="sub">Що таке стрес і як із нього виходити</div>
+    <div class="corner" style="left:130px">Психологія лідерства · ЛНУ ім. Івана Франка · 2026</div>
+    <div class="corner" style="right:130px" id="speaker" contenteditable="true" spellcheck="false" title="Клікніть, щоб вписати своє ім’я">Ім’я Прізвище</div>
+  </section>
+
+  <!-- 2 -->
+  <section class="slide" id="s2" data-stress="20" data-steps="2" aria-label="Цитата">
+    <div class="q" id="quote">
+      <div class="h" id="quoteText">«Повна свобода від стресу означає смерть»</div>
+      <div class="by M">Ганс Сельє, «Stress without Distress», 1974</div>
+    </div>
+    <div class="ask" data-step="2"><div class="h">Хто сьогодні вже відчув стрес? 🙋</div></div>
+    <button id="sound" type="button">Звук монітора: вимк.</button>
+  </section>
+
+  <!-- 3 -->
+  <section class="slide" id="s3" data-stress="30" data-steps="2" aria-label="Слово стрес">
+    <div class="grid"></div>
+    <div class="abs" style="left:130px;top:110px">
+      <div class="h word">STRESS</div>
+      <div class="lead muted" style="margin-top:6px">[англ.] напруження в матеріалі під навантаженням</div>
+    </div>
+    <svg id="bridge" viewBox="0 0 1240 520" aria-hidden="true">
+      <g id="weight"><rect x="540" y="0" width="160" height="90" rx="10" fill="#FFB547"/><text x="620" y="56" text-anchor="middle" font-family="JetBrains Mono" font-weight="800" font-size="24" fill="#0B1424">вантаж</text></g>
+      <path class="deck" id="deck" d="M60 220 Q620 260 1180 220" stroke="#F3EDE2" stroke-width="12" fill="none" stroke-linecap="round"/>
+      <path class="pier" id="pier1" stroke="#F3EDE2" stroke-width="9" fill="none"/>
+      <path class="pier" id="pier2" stroke="#F3EDE2" stroke-width="9" fill="none"/>
+      <path class="pier" d="M60 220 L60 470 M1180 220 L1180 470" stroke="#F3EDE2" stroke-width="9" fill="none"/>
+      <path d="M0 470 L1240 470" stroke="#8A94A6" stroke-width="3" stroke-dasharray="10 10"/>
+      <path class="crack" d="M70 232 l26 18 l-12 16 l24 18 l-8 14" stroke="#FF5A3C" stroke-width="5" fill="none"/>
+      <path class="crack" d="M1170 232 l-26 18 l12 16 l-24 18 l8 14" stroke="#FF5A3C" stroke-width="5" fill="none"/>
+      <path class="crack" id="crackMid" d="M610 300 l10 30 l-14 22 l12 26" stroke="#FF5A3C" stroke-width="5" fill="none"/>
+    </svg>
+    <div id="gauge"><div id="gaugeFill"></div></div>
+    <div id="gaugeTxt">запас міцності<br><b class="M" id="gaugeVal" style="font-size:34px;color:#F3EDE2">100%</b></div>
+    <div class="abs lead" data-step="2" style="left:130px;top:830px;font-size:36px;font-weight:600">Людина, як міст: тримає навантаження — до межі свого запасу міцності.</div>
+  </section>
+
+  <!-- 4 -->
+  <section class="slide" id="s4" data-stress="35" data-steps="3" aria-label="90 років науки про стрес">
+    <h2 class="h">90 років науки про стрес</h2>
+    <div class="lead muted" style="margin-top:14px">Від тіла — до подій — до голови</div>
+    <div class="tl"></div>
+    <div class="era" data-step="1" style="--c:var(--coral);left:200px;width:520px">ТІЛО</div>
+    <div class="era" data-step="2" style="--c:var(--amber);left:770px;width:260px">ПОДІЇ</div>
+    <div class="era" data-step="3" style="--c:var(--teal);left:1080px;width:690px">ГОЛОВА І РЕСУРСИ</div>
+    <div class="node" data-step="1" style="--c:var(--coral);left:200px"><div class="dot"></div><div class="y">1915</div><div class="n">В. Кеннон</div><div class="f">реакція «бий або тікай»</div></div>
+    <div class="node" data-step="1" style="--c:var(--coral);left:480px"><div class="dot"></div><div class="y">1936</div><div class="n">Г. Сельє</div><div class="f">загальний адаптаційний синдром</div></div>
+    <div class="node" data-step="2" style="--c:var(--amber);left:770px"><div class="dot"></div><div class="y">1967</div><div class="n">Т. Холмс, Р. Рейх</div><div class="f">стресують навіть хороші події</div></div>
+    <div class="node hl" data-step="3" style="--c:var(--teal);left:1080px"><div class="dot"></div><div class="y">1984</div><div class="n">Р. Лазарус, С. Фолкман</div><div class="f">стрес — це оцінка</div></div>
+    <div class="node" data-step="3" style="--c:var(--teal);left:1340px"><div class="dot"></div><div class="y">1989</div><div class="n">С. Гобфолл</div><div class="f">утрата ресурсів</div></div>
+    <div class="node" data-step="3" style="--c:var(--teal);left:1570px;width:200px"><div class="dot"></div><div class="y">1998</div><div class="n">Б. Мак’юен</div><div class="f">«ціна» тривалої адаптації</div></div>
+  </section>
+
+  <!-- 5 -->
+  <section class="slide" id="s5" data-stress="45" data-steps="2" aria-label="Модель Лазаруса">
+    <h2 class="h" style="font-size:50px;max-width:1500px;line-height:1.2">Стрес — це не подія. Це розрив між вимогами і ресурсами — так, як їх бачить людина.</h2>
+    <svg id="scale" viewBox="0 0 1920 1080" aria-hidden="true">
+      <line x1="960" y1="430" x2="960" y2="800" stroke="#F3EDE2" stroke-width="10"/>
+      <path d="M880 800 L1040 800" stroke="#F3EDE2" stroke-width="10" stroke-linecap="round"/>
+      <line id="beam" stroke="#F3EDE2" stroke-width="10" stroke-linecap="round"/>
+      <circle cx="960" cy="430" r="16" fill="#FFB547"/>
+      <g id="panL">
+        <line x1="0" y1="0" x2="-140" y2="150" stroke="#8A94A6" stroke-width="3"/><line x1="0" y1="0" x2="140" y2="150" stroke="#8A94A6" stroke-width="3"/>
+        <path d="M-170 150 Q0 215 170 150 Z" fill="#13233A" stroke="#F3EDE2" stroke-width="4"/>
+        <g class="cube" data-drop="1" style="transition-delay:0s"><rect x="-150" y="96" width="146" height="50" rx="8" fill="#FF5A3C"/><text x="-77" y="129" text-anchor="middle" font-family="Manrope" font-weight="800" font-size="21" fill="#0B1424">дедлайн</text></g>
+        <g class="cube" data-drop="1" style="transition-delay:.12s"><rect x="4" y="96" width="146" height="50" rx="8" fill="#FF5A3C"/><text x="77" y="129" text-anchor="middle" font-family="Manrope" font-weight="800" font-size="21" fill="#0B1424">план</text></g>
+        <g class="cube" data-drop="1" style="transition-delay:.24s"><rect x="-150" y="40" width="146" height="50" rx="8" fill="#FF5A3C"/><text x="-77" y="73" text-anchor="middle" font-family="Manrope" font-weight="800" font-size="21" fill="#0B1424">конфлікт</text></g>
+        <g class="cube" data-drop="1" style="transition-delay:.36s"><rect x="4" y="40" width="146" height="50" rx="8" fill="#FF5A3C"/><text x="77" y="73" text-anchor="middle" font-family="Manrope" font-weight="800" font-size="16" fill="#0B1424">невизначеність</text></g>
+        <text x="0" y="250" text-anchor="middle" font-family="Unbounded" font-weight="800" font-size="30" fill="#FF5A3C">ВИМОГИ</text>
+      </g>
+      <g id="panR">
+        <line x1="0" y1="0" x2="-140" y2="150" stroke="#8A94A6" stroke-width="3"/><line x1="0" y1="0" x2="140" y2="150" stroke="#8A94A6" stroke-width="3"/>
+        <path d="M-170 150 Q0 215 170 150 Z" fill="#13233A" stroke="#F3EDE2" stroke-width="4"/>
+        <g class="cube" data-drop="2" style="transition-delay:0s"><rect x="-150" y="96" width="146" height="50" rx="8" fill="#27C2A7"/><text x="-77" y="129" text-anchor="middle" font-family="Manrope" font-weight="800" font-size="21" fill="#0B1424">час</text></g>
+        <g class="cube" data-drop="2" style="transition-delay:.12s"><rect x="4" y="96" width="146" height="50" rx="8" fill="#27C2A7"/><text x="77" y="129" text-anchor="middle" font-family="Manrope" font-weight="800" font-size="21" fill="#0B1424">енергія</text></g>
+        <g class="cube" data-drop="2" style="transition-delay:.24s"><rect x="-150" y="40" width="146" height="50" rx="8" fill="#27C2A7"/><text x="-77" y="73" text-anchor="middle" font-family="Manrope" font-weight="800" font-size="21" fill="#0B1424">підтримка</text></g>
+        <g class="cube" data-drop="2" style="transition-delay:.36s"><rect x="4" y="40" width="146" height="50" rx="8" fill="#27C2A7"/><text x="77" y="73" text-anchor="middle" font-family="Manrope" font-weight="800" font-size="21" fill="#0B1424">досвід</text></g>
+        <text x="0" y="250" text-anchor="middle" font-family="Unbounded" font-weight="800" font-size="30" fill="#27C2A7">РЕСУРСИ</text>
+      </g>
+    </svg>
+    <div class="state U" id="state5"></div>
+    <div class="abs" style="left:0;right:0;top:848px;text-align:center;font-size:26px;font-style:italic;color:var(--grey)" data-step="2">Той самий квартальний план одного паралізує, а іншого надихає.</div>
+  </section>
+
+  <!-- 6 -->
+  <section class="slide" id="s6" data-stress="45" data-steps="3" aria-label="Визначення стресу">
+    <h2 class="h">Що таке стрес</h2>
+    <div class="cnode" data-step="1" style="left:130px"><div class="t">СТРЕСОР</div><div class="s">що діє</div></div>
+    <div class="arrow" data-step="2" style="left:440px;width:200px"><i></i></div>
+    <div class="cnode" data-step="2" style="left:660px"><div class="t">ОЦІНКА</div><div class="s">як я це бачу</div></div>
+    <div class="arrow" data-step="3" style="left:970px;width:200px"><i style="animation-delay:.9s"></i></div>
+    <div class="cnode" data-step="3" style="left:1190px;border-color:var(--teal)"><div class="t">РЕАКЦІЯ</div><div class="s">що зі мною<br>відбувається</div></div>
+    <div class="rtile" data-step="3" style="top:200px;transition-delay:.2s">тіло</div>
+    <div class="rtile" data-step="3" style="top:290px;transition-delay:.35s">емоції</div>
+    <div class="rtile" data-step="3" style="top:380px;transition-delay:.5s">думки</div>
+    <div class="rtile" data-step="3" style="top:470px;transition-delay:.65s">поведінка</div>
+    <div class="def"><b class="U" style="font-size:30px">Стрес</b> — динамічний процес, за якого вимоги середовища оцінюються як такі, що наближаються до меж ресурсів людини або перевищують їх.</div>
+    <div class="abs U" data-step="3" style="left:1420px;top:690px;width:360px;font-size:30px;font-weight:700;color:var(--amber);line-height:1.25;transition-delay:.8s">Кожна точка — важіль лідера</div>
+  </section>
+
+  <!-- 7 -->
+  <section class="slide" id="s7" data-stress="55" data-steps="4" aria-label="Загальний адаптаційний синдром">
+    <h2 class="h" style="font-size:54px">Як розгортається стрес</h2>
+    <div class="lead muted" style="font-size:24px;margin-top:8px">Загальний адаптаційний синдром Г. Сельє</div>
+    <svg id="gas" viewBox="0 0 1630 640" aria-hidden="true">
+      <rect x="160" y="40" width="300" height="560" fill="rgba(255,90,60,.10)"/>
+      <rect x="460" y="40" width="620" height="560" fill="rgba(255,181,71,.09)"/>
+      <rect x="1080" y="40" width="550" height="560" fill="rgba(138,148,166,.09)"/>
+      <text x="310" y="90" text-anchor="middle" font-family="Unbounded" font-weight="700" font-size="28" fill="#F3EDE2">1. Тривога</text>
+      <text x="770" y="90" text-anchor="middle" font-family="Unbounded" font-weight="700" font-size="28" fill="#F3EDE2">2. Резистентність</text>
+      <text x="1355" y="90" text-anchor="middle" font-family="Unbounded" font-weight="700" font-size="28" fill="#F3EDE2">3. Виснаження</text>
+      <line x1="0" y1="430" x2="1630" y2="430" stroke="#8A94A6" stroke-width="2" stroke-dasharray="4 8"/>
+      <text x="0" y="418" font-family="JetBrains Mono" font-size="18" fill="#8A94A6">норма</text>
+      <text x="0" y="630" font-family="JetBrains Mono" font-size="18" fill="#8A94A6">час дії стресора →</text>
+      <path class="seg" id="segA" d="M0 430 L160 430 Q230 580 300 460 Q370 250 460 230"/>
+      <path class="seg" id="segB" d="M460 230 Q620 205 770 232 T1080 228"/>
+      <path class="seg" id="segC" d="M1080 228 Q1190 520 1610 585"/>
+      <path class="exit" id="exitPath" d="M720 226 Q840 430 1130 426" opacity="0"/>
+    </svg>
+    <div class="msg lead" data-step="2" style="left:640px;top:322px;width:560px;color:var(--amber);font-size:28px">тут багато українців живуть роками</div>
+    <div class="msg U" data-step="4" style="left:1430px;top:350px;width:310px;font-size:28px;line-height:1.2;color:var(--teal)">Вихід — ДО виснаження, а не після</div>
+  </section>
+
+  <!-- 8 -->
+  <section class="slide" id="s8" data-stress="50" data-steps="1" aria-label="Крива Єркса–Додсона">
+    <h2 class="h" style="font-size:58px">Скільки стресу — достатньо?</h2>
+    <svg id="yd" viewBox="0 0 1400 520" aria-hidden="true">
+      <path id="ydCurve" fill="none" stroke="#F3EDE2" stroke-width="7" stroke-linecap="round"/>
+      <circle id="ydGlow" r="38" fill="#27C2A7" opacity=".25"/>
+      <circle id="ydDot" r="20" fill="#27C2A7"/>
+      <text x="0" y="515" font-family="JetBrains Mono" font-size="18" fill="#8A94A6">рівень стресу →</text>
+      
+    </svg>
+    <div id="ydLabel">ЕУСТРЕС<span id="ydSub">фокус, енергія, результат</span></div>
+    <input id="ydRange" type="range" min="0" max="100" value="15" aria-label="Рівень стресу">
+    <div class="fact" data-step="1"><b class="M" style="color:var(--amber)">1908</b> · В оригінальному експерименті Єркс і Додсон навчали… мишей 🐭 «Перевернуту U» домалювали значно пізніше.</div>
+  </section>
+
+  <!-- 9 -->
+  <section class="slide" id="s9" data-stress="60" data-steps="1" aria-label="Шкала Холмса–Рейха">
+    <h2 class="h" style="font-size:58px">Скільки «важить» робоче життя?</h2>
+    <div class="lead muted" style="font-size:24px;margin-top:8px">Шкала Т. Холмса і Р. Рейха, 1967 — клікайте події</div>
+    <div id="chips"></div>
+    <div id="sum">0</div>
+    <div id="sumCap">балів за рік</div>
+    <div id="thermo"><div id="thermoFill"></div></div>
+    <div id="mark300"></div>
+    <div id="mark300cap">300 — зона високого ризику для здоров’я<br>(за інтерпретацією авторів шкали)</div>
+    <button id="reset" type="button">Скинути</button>
+    <div class="stamp" data-step="1">ВІЙНИ В ШКАЛІ<br>1967 РОКУ НЕМАЄ</div>
+  </section>
+
+  <!-- 10 -->
+  <section class="slide" id="s10" data-stress="88" data-steps="4" aria-label="Україна під напругою">
+    <h2 class="h" style="font-size:58px">Україна під напругою</h2>
+    <div class="lead muted" style="font-size:24px;margin-top:8px">100 точок — 100 працюючих людей</div>
+    <div id="grid100"></div>
+    <div class="stat" data-step="1" style="top:250px"><div class="v">≈<span class="count" data-to="10">0</span> млн</div><div class="l">українців у зоні ризику проблем психічного здоров’я (оцінка ВООЗ)</div></div>
+    <div class="stat" data-step="2" style="top:410px"><div class="v" style="color:var(--coral)"><span class="count" data-to="26">0</span></div><div class="l">зі 100 працівників мають високий рівень стресу</div></div>
+    <div class="stat" data-step="3" style="top:560px"><div class="v" style="color:var(--amber)"><span class="count" data-to="54">0</span></div><div class="l">зі 100 — помірний рівень стресу</div></div>
+    <div class="stat" data-step="4" style="top:710px"><div class="v">≈<span class="count" data-to="40">0</span></div><div class="l">зі 100 готові звільнитися через вигорання</div></div>
+    <div class="src">Джерела: Gradus Research, 2026 · ВООЗ / Держпраці, 2025</div>
+  </section>
+
+  <!-- 11 -->
+  <section class="slide" id="s11" data-stress="92" data-steps="3" aria-label="Ілюзія спокою">
+    <h2 class="h" style="font-size:80px">Стало краще?</h2>
+    <div class="ghost" id="g0" style="left:200px"></div><div class="bar" id="b0" style="left:200px;height:0"></div><div class="bval" id="v0" style="left:200px;bottom:250px">0%</div>
+    <div class="ghost" id="g1" style="left:620px"></div><div class="bar" id="b1" style="left:620px;height:0"></div><div class="bval" id="v1" style="left:620px;bottom:250px">0%</div>
+    <div class="ghost" id="g2" style="left:1040px"></div><div class="bar" id="b2" style="left:1040px;height:0"></div><div class="bval" id="v2" style="left:1040px;bottom:250px">0%</div>
+    <div class="blab" style="left:150px">високий стрес</div><div class="blab" style="left:570px">помірний стрес</div><div class="blab" style="left:990px">перевантаження —<br>головний стресор</div>
+    <div class="abs M" id="yr11" style="left:1300px;top:120px;font-size:40px;font-weight:800;color:var(--grey)"></div>
+    <div class="better" data-step="2" style="left:170px;top:400px">↓ <s>покращення?</s></div>
+    <svg class="abs" data-step="3" style="left:1340px;top:330px" width="430" height="200" viewBox="0 0 430 200" aria-hidden="true">
+      <path d="M0 150 L40 150 Q70 200 95 160 Q120 60 160 55 Q230 45 300 58 Q350 140 430 180" fill="none" stroke="#F3EDE2" stroke-width="5"/>
+      <circle cx="230" cy="50" r="13" fill="#FFB547"><animate attributeName="opacity" values="1;.2;1" dur="1.1s" repeatCount="indefinite"/></circle>
+      <text x="230" y="20" text-anchor="middle" font-family="JetBrains Mono" font-size="18" fill="#FFB547">ви тут</text>
+    </svg>
+    <div class="abs U" data-step="3" style="left:1340px;top:560px;width:430px;font-size:36px;font-weight:800;color:var(--amber);line-height:1.25">Ні. Це адаптація — масова фаза резистентності.</div>
+    <div class="src">Gradus Research, 2025 (n = 1000) і 2026 (n = 1200)</div>
+  </section>
+
+  <!-- 12 -->
+  <section class="slide" id="s12" data-stress="100" data-steps="4" aria-label="Ціна стресу">
+    <div class="vig"></div>
+    <h2 class="h" style="font-size:72px">Ціна стресу</h2>
+    <div class="tiles">
+      <div class="tile" data-flip="1"><div class="f">?</div><div class="b"><div class="v">$4000</div><div class="l">щонайменше на рік коштує вигорання одного працівника (США)</div></div></div>
+      <div class="tile" data-flip="2"><div class="f">?</div><div class="b"><div class="v">−50%</div><div class="l">залученості у працівників із проблемами психічного здоров’я без допомоги</div></div></div>
+      <div class="tile" data-flip="3"><div class="f">?</div><div class="b"><div class="v">−68 / +31</div><div class="l">eNPS виснажених працівників проти залучених</div></div></div>
+      <div class="tile" data-flip="4"><div class="f">?</div><div class="b"><div class="v">58%</div><div class="l">українських працівників не мають доступу до психологічної підтримки на роботі</div></div></div>
+    </div>
+    <div class="src" style="bottom:140px">AJPM 2025 (через Forbes Ukraine) · Deloitte Ukraine &amp; Wellbeing Company · Gradus Research 2025, 2026</div>
+  </section>
+
+  <!-- 13 -->
+  <section class="slide" id="s13" data-stress="78" data-steps="2" aria-label="Шлях назад">
+    <h2 class="h" style="font-size:60px">Вихід зі стресу — не подія, а процес</h2>
+    <div class="stair" data-step="1" data-go="13" style="--i:0;left:130px;top:610px;background:#FF5A3C"><div class="n">1</div><div class="t">Зупинка та усвідомлення</div><div class="q">«Що зі мною відбувається?»</div></div>
+    <div class="stair" data-step="1" data-go="14" style="--i:1;left:460px;top:520px;background:#E08A4F"><div class="n">2</div><div class="t">Стабілізація</div><div class="q">«Як повернути опору?»</div></div>
+    <div class="stair" data-step="1" data-go="15" style="--i:2;left:790px;top:430px;background:#E2A23E"><div class="n">3</div><div class="t">Переоцінка і копінг</div><div class="q">«Що я можу контролювати?»</div></div>
+    <div class="stair" data-step="1" data-go="16" style="--i:3;left:1120px;top:340px;background:#1FA28B"><div class="n">4</div><div class="t">Відновлення ресурсів</div><div class="q">«Що мене наповнює?»</div></div>
+    <div class="stair" data-step="1" data-go="16" style="--i:4;left:1450px;top:250px;background:#1F3A5F;width:310px"><div class="n">5</div><div class="t">Інтеграція і зростання</div><div class="q">«Чого мене навчив цей досвід?»</div></div>
+    <svg class="abs" data-step="2" style="left:0;top:0;pointer-events:none" width="1920" height="1080" viewBox="0 0 1920 1080" aria-hidden="true">
+      <path d="M1600 235 Q1000 120 290 590" fill="none" stroke="#8A94A6" stroke-width="3" stroke-dasharray="12 10"/>
+      <path d="M290 590 l6 -30 M290 590 l28 -12" stroke="#8A94A6" stroke-width="3"/>
+    </svg>
+    <div class="abs" data-step="2" style="left:520px;top:230px;width:640px;font-size:25px;color:var(--grey);line-height:1.4">Відкат — це норма. Мета — не уникнути «відкатів», а скоротити шлях назад.</div>
+  </section>
+
+  <!-- 14 -->
+  <section class="slide" id="s14" data-stress="62" data-steps="4" aria-label="Етап 1">
+    <div class="ghostnum">01</div>
+    <h2 class="h" style="font-size:52px;position:relative">Етап 1 · Зупинка та усвідомлення</h2>
+    <div class="lead muted" style="font-size:24px;margin-top:8px;position:relative">«Що зі мною відбувається?»</div>
+    <svg id="body" viewBox="0 0 280 620" aria-hidden="true">
+      <circle cx="140" cy="70" r="52" fill="none" stroke="#F3EDE2" stroke-width="5"/>
+      <path d="M140 122 L140 370 M50 190 Q140 160 230 190 M50 190 L30 340 M230 190 L250 340 M140 370 L80 600 M140 370 L200 600" fill="none" stroke="#F3EDE2" stroke-width="5" stroke-linecap="round"/>
+    </svg>
+    <div id="scanner"></div>
+    <div class="sig" data-step="1" style="left:1240px;top:250px"><div class="ln" style="left:-120px;width:100px"></div><div class="k">Тіло</div><div class="d">сон, м’язова напруга, головний біль</div></div>
+    <div class="sig" data-step="2" style="left:1240px;top:400px"><div class="ln" style="left:-120px;width:100px"></div><div class="k">Емоції</div><div class="d">дратівливість, тривога, «плоскість»</div></div>
+    <div class="sig" data-step="3" style="left:200px;top:470px;text-align:right"><div class="ln" style="left:540px;width:90px"></div><div class="k">Думки</div><div class="d">важко сфокусуватися, більше помилок</div></div>
+    <div class="sig" data-step="4" style="left:200px;top:640px;text-align:right"><div class="ln" style="left:540px;width:90px"></div><div class="k">Поведінка</div><div class="d">прокрастинація, третя кава, ізоляція</div></div>
+    <div class="abs lead" data-step="4" style="left:1240px;top:620px;width:540px;font-size:27px;color:var(--amber)">У фазі резистентності ми впевнені, що «все нормально».</div>
+  </section>
+
+  <!-- 15 -->
+  <section class="slide" id="s15" data-stress="45" data-steps="1" aria-label="Етап 2, дихальна вправа">
+    <h2 class="h dimmable" style="font-size:52px">Етап 2 · Стабілізація</h2>
+    <div class="lead muted dimmable" style="font-size:26px;margin-top:8px">Стрес починається в тілі. І вихід — теж.</div>
+    <div id="breath"><div id="breathTxt">Готові?</div><div id="breathN">клік — старт</div></div>
+    <div class="note">Спершу безпека, потім аналіз — так працює перша психологічна допомога, якої навчали працівників «Укрзалізниці»</div>
+    <div class="chips"><span class="pill">сон</span><span class="pill">вода</span><span class="pill">рух</span><span class="pill">їжа</span><span class="pill">пауза від новин</span></div>
+    <button id="again" type="button">Повторити</button>
+  </section>
+
+  <!-- 16 -->
+  <section class="slide" id="s16" data-stress="35" data-steps="2" aria-label="Етап 3">
+    <h2 class="h" style="font-size:50px">Етап 3 · Що я можу контролювати?</h2>
+    <div id="ring"></div><div id="core"><span>МОЄ</span></div><div id="notMine">НЕ МОЄ</div>
+    <div id="cards16"></div>
+    <div class="plaque" data-step="2" style="top:330px"><b style="color:var(--teal)">Змінюю ситуацію</b>коли можу: план, переговори, делегування</div>
+    <div class="plaque" data-step="2" style="top:520px;transition-delay:.2s"><b style="color:var(--amber)">Змінюю ставлення</b>коли змінити ситуацію не можу</div>
+    <div class="abs muted" data-step="2" style="left:130px;top:700px;font-size:20px;transition-delay:.4s">Р. Лазарус, С. Фолкман</div>
+  </section>
+
+  <!-- 17 -->
+  <section class="slide" id="s17" data-stress="30" data-steps="2" aria-label="Етапи 4 і 5">
+    <h2 class="h" style="font-size:50px">Етапи 4–5 · Ресурси і зростання</h2>
+    <div data-step="1">
+      <div class="rec"><span class="pill">відключення від роботи</span><span class="pill">релаксація</span><span class="pill">опанування нового</span><span class="pill">контроль над вільним часом</span></div>
+      <div class="hex" data-k="0" style="left:240px;top:350px"><b>B</b><span>цінності</span></div>
+      <div class="hex" data-k="1" style="left:440px;top:350px"><b>A</b><span>емоції</span></div>
+      <div class="hex" data-k="2" style="left:140px;top:526px"><b>S</b><span>люди</span></div>
+      <div class="hex" data-k="3" style="left:340px;top:526px"><b>I</b><span>уява</span></div>
+      <div class="hex" data-k="4" style="left:540px;top:526px"><b>C</b><span>мислення</span></div>
+      <div class="hex" data-k="5" style="left:740px;top:438px"><b>Ph</b><span>тіло</span></div>
+      <div id="hexInfo">Модель BASIC Ph (М. Лахад): шість каналів, через які ми набираємо сили. <span class="muted">Наведіть на соту.</span></div>
+    </div>
+    <div class="right" id="right17" data-step="2">
+      <div class="U" style="font-size:34px;font-weight:800;line-height:1.25">«Що цей досвід змінив у мені?»</div>
+      <div class="muted" style="font-size:22px;margin-top:10px">Посттравматичне зростання · Р. Тедескі, Л. Калхун</div>
+      <div class="spark" style="--sd:.2s;left:60px;top:200px">✦ глибше цінування життя</div>
+      <div class="spark" style="--sd:.45s;left:180px;top:270px">✦ ближчі стосунки</div>
+      <div class="spark" style="--sd:.7s;left:60px;top:340px">✦ відчуття власної сили</div>
+      <div class="spark" style="--sd:.95s;left:180px;top:410px">✦ нові можливості</div>
+      <div class="spark" style="--sd:1.2s;left:60px;top:480px">✦ духовні зміни</div>
+      <div class="muted" style="position:absolute;left:60px;top:560px;font-size:22px">Зростання не скасовує болю — воно поруч із ним.</div>
+      <div id="flies"></div>
+    </div>
+  </section>
+
+  <!-- 18 -->
+  <section class="slide" id="s18" data-stress="28" data-steps="4" aria-label="Кейс Київстар">
+    <h2 class="h" style="font-size:54px">Кейс: «Київстар», грудень 2023</h2>
+    <div class="lead muted" style="font-size:24px;margin-top:8px">Організація теж виходить зі стресу</div>
+    <div id="signal"><i style="height:28px"></i><i style="height:48px"></i><i style="height:68px"></i><i style="height:88px"></i></div>
+    <div class="big" data-step="1">24 млн</div><div class="bigl" data-step="1">абонентів без зв’язку</div>
+    <div class="tl"></div>
+    <div class="ev" data-step="1" style="--c:var(--coral);left:130px"><div class="dot"></div><div class="d">12.12</div><div class="t">Кібератака</div><span class="stage-chip">стрес</span></div>
+    <div class="ev" data-step="2" style="--c:#E08A4F;left:390px"><div class="dot"></div><div class="d">12.12</div><div class="t">Разом зі СБУ свідомо вимикають мережу</div><span class="stage-chip">етапи 1–2</span></div>
+    <div class="ev" data-step="3" style="--c:var(--amber);left:650px"><div class="dot"></div><div class="d">12.12</div><div class="t">Увечері — частково фіксований зв’язок</div><span class="stage-chip">етапи 3–4</span></div>
+    <div class="ev" data-step="3" style="--c:var(--amber);left:910px;transition-delay:.25s"><div class="dot"></div><div class="d">14.12</div><div class="t">Мобільний інтернет</div><span class="stage-chip">етапи 3–4</span></div>
+    <div class="ev" data-step="3" style="--c:var(--amber);left:1170px;transition-delay:.5s"><div class="dot"></div><div class="d">18.12</div><div class="t">SMS</div><span class="stage-chip">етапи 3–4</span></div>
+    <div class="ev" data-step="4" style="--c:var(--teal);left:1430px"><div class="dot"></div><div class="d">2024</div><div class="t">Бюджет перерозподілено на кібербезпеку</div><span class="stage-chip">етап 5</span></div>
+    <div class="fact" data-step="1">За даними СБУ, хакери були в системі щонайменше з травня 2023 року · збитки — близько 5 млрд грн</div>
+    <div id="flash"></div>
+  </section>
+
+  <!-- 19 -->
+  <section class="slide" id="s19" data-stress="22" data-steps="5" aria-label="Чотири компанії">
+    <h2 class="h" style="font-size:54px">4 компанії — 4 рішення</h2>
+    <div class="cards">
+      <div class="card" data-flip="1"><div class="f"><div class="nm">ПУМБ</div><div class="q">?</div></div>
+        <div class="b"><div class="nm">ПУМБ</div><div class="v">1025 → 3000</div><div class="l">конфіденційний сервіс психологів: пілот, оцінка 9,7 з 10, потім масштаб</div><div class="st"><span class="stage-chip lit">1</span><span class="stage-chip">2</span><span class="stage-chip lit">3</span><span class="stage-chip lit">4</span><span class="stage-chip s5">5</span></div></div></div>
+      <div class="card" data-flip="2"><div class="f"><div class="nm">SoftServe</div><div class="q">?</div></div>
+        <div class="b"><div class="nm">SoftServe</div><div class="v">8×</div><div class="l">більше звернень по допомогу після подолання стигми; релокація тисяч людей — $10 млн</div><div class="st"><span class="stage-chip lit">1</span><span class="stage-chip lit">2</span><span class="stage-chip">3</span><span class="stage-chip lit">4</span><span class="stage-chip s5">5</span></div></div></div>
+      <div class="card" data-flip="3"><div class="f"><div class="nm">«Укрзалізниця»</div><div class="q">?</div></div>
+        <div class="b"><div class="nm">«Укрзалізниця»</div><div class="v">4+ млн</div><div class="l">евакуйованих; перша психологічна допомога; 800 ветеранів повернулися до роботи</div><div class="st"><span class="stage-chip">1</span><span class="stage-chip lit">2</span><span class="stage-chip">3</span><span class="stage-chip lit">4</span><span class="stage-chip lit s5">5</span></div></div></div>
+      <div class="card" data-flip="4"><div class="f"><div class="nm">Gradus Research</div><div class="q">?</div></div>
+        <div class="b"><div class="nm">Gradus Research</div><div class="v">1 день</div><div class="l">Mental Health Day — вихідний через виснаження без пояснень</div><div class="st"><span class="stage-chip lit">1</span><span class="stage-chip">2</span><span class="stage-chip">3</span><span class="stage-chip lit">4</span><span class="stage-chip s5">5</span></div></div></div>
+    </div>
+    <div class="sum" data-step="5">Бізнес добре гасить пожежі. Найслабший — етап 5.</div>
+  </section>
+
+  <!-- 20 -->
+  <section class="slide" id="s20" data-stress="18" data-steps="4" aria-label="Фінал">
+    <div class="dawn"></div>
+    <h2 class="h" style="font-size:54px;transition:opacity .8s" id="t20">Лідер як архітектор</h2>
+    <div class="thesis" data-step="1" style="top:290px"><div class="n">1</div><div class="t">Кисневу маску — спершу на себе<small>Стрес лідера заразний: команда зчитує його швидше за слова.</small></div></div>
+    <div class="thesis" data-step="2" style="top:480px"><div class="n">2</div><div class="t">Психологічна безпека<small>20% працівників її не відчувають — і не скажуть, що їм погано.</small></div></div>
+    <div class="thesis" data-step="3" style="top:670px"><div class="n">3</div><div class="t">Не рятівник, а архітектор умов<small>Ясність · ресурси · досвід.</small></div></div>
+    <div class="final"><div class="h">Стрес не прибрати.<br>Через нього можна навчитися проходити.</div><div class="thx">Дякую! Питання?</div></div>
+  </section>
+
+  <div id="meter"><div id="meterFill"></div></div>
+  <div id="count" class="M">01/20</div>
+  <nav id="dots" aria-label="Слайди"></nav>
+  <div id="hint">→ або клік — далі · ← назад · F — повний екран · N — нотатки · H — допомога</div>
+  <div id="notes" aria-live="polite"></div>
+  <div id="help"><div class="box">
+    <div class="U" style="font-size:40px;font-weight:800;margin-bottom:20px">Керування</div>
+    <b>→  Пробіл  PageDown  клік</b> — наступний крок<br>
+    <b>←  PageUp</b> — крок назад<br>
+    <b>↑ ↓</b> — повзунок на слайді 8<br>
+    <b>F</b> — повний екран · <b>B</b> — чорний екран · <b>Home</b> — на початок<br>
+    <b>N</b> — нотатки доповідачки · <b>Esc</b> — зупинити вправу / закрити
+  </div></div>
+  <div id="blackout"></div>
+</div>
+
+<script>
+(() => {
+const SCRIPT = {"1": "Добрий день! Перш ніж почати, зробімо маленький експеримент: на секунду прислухайтеся до себе. До плечей, до щелепи, до дихання. Якщо десь відчули напругу — вітаю, ви вже в темі. Сьогодні я розповім, що насправді таке стрес, чому він не ворог і як із нього виходити — і одній людині, і цілій команді. [ДАЛІ]", "2": "Почну з цитати, яка мене здивувала. [КЛІК 1] Її автор — Ганс Сельє, людина, яка фактично відкрила стрес для науки. Він писав: повна свобода від стресу означає смерть. Тобто стрес — це не поломка, а ознака того, що ми живі й пристосовуємося. [КЛІК 2] Тож чесне питання: підніміть руку, хто сьогодні вже відчув стрес? [ПАУЗА 2–3 с] Бачу — живі всі. Отже, питання не в тому, як позбутися стресу, а в тому, як ним керувати. [ДАЛІ]", "3": "А саме слово «стрес» прийшло до нас не з психології, а з інженерії. Stress — це напруження в матеріалі під навантаженням. Ось міст. [КЛІК 1] Додаємо вантаж — міст прогинається, з’являються тріщини, запас міцності тане. [КЛІК 2] Людина працює так само: ми витримуємо навантаження, але тільки до межі свого запасу міцності. І вся наука про стрес — це, по суті, наука про цей запас. [ДАЛІ]", "4": "За дев’яносто років уявлення про стрес змінювалися тричі. [КЛІК 1] Спочатку все було про тіло. 1915 рік — Волтер Кеннон описує реакцію «бий або тікай»: адреналін, серце, м’язи. 1936 — Сельє називає це загальним адаптаційним синдромом. [КЛІК 2] Далі фокус зміщується на події: 1967 рік, Холмс і Рейх рахують, скільки «важить» кожна життєва зміна, і доводять, що стресують навіть хороші події — весілля чи відпустка. [КЛІК 3] І нарешті — голова та ресурси: Лазарус і Фолкман, Гобфолл, Мак’юен. На Лазарусі зупинюся окремо, бо саме там головний поворот. [ДАЛІ]", "5": "Лазарус і Фолкман у 1984 році сказали: стрес — це не подія, а наша оцінка події. Подивімося на терези. [КЛІК 1] Зліва — вимоги: дедлайн, план, конфлікт, невизначеність. Якщо ресурсів не видно, терези падають — і ми бачимо загрозу. Це стрес. [КЛІК 2] Але додаємо ресурси: час, підтримку, досвід — і та сама ситуація перетворюється на виклик. Саме тому той самий квартальний план одного менеджера паралізує, а іншого надихає. [ДАЛІ]", "6": "Якщо скласти все разом, отримаємо робоче визначення. Стрес — це процес, у якому вимоги середовища ми оцінюємо як такі, що наближаються до меж наших ресурсів або перевищують їх. [КЛІК 1] У ньому три частини: стресор — те, що діє; [КЛІК 2] оцінка — як я це бачу; [КЛІК 3] і реакція — що відбувається з тілом, емоціями, думками й поведінкою. І найважливіше для лідера: кожна з цих трьох точок — це важіль, на який він може вплинути. [ДАЛІ]", "7": "Як стрес розгортається в часі, показав Сельє. [КЛІК 1] Перша фаза — тривога: опірність коротко падає, а потім різко злітає. Адреналін, кортизол, мобілізація. [КЛІК 2] Друга — резистентність: організм утримує підвищений рівень. І тут чесно: у цій фазі багато хто з нас живе роками. [КЛІК 3] Якщо стресор не зникає, приходить виснаження: хвороби, апатія, вигорання. [КЛІК 4] Але є ця пунктирна лінія. Це і є вихід зі стресу. І він найефективніший тоді, коли ми починаємо відновлюватися ще до виснаження, а не після того, як «перегоріли». [ДАЛІ]", "8": "То, може, стрес треба просто прибрати? Ні. Ось крива Єркса–Додсона. [ДІЯ: повзунок ліворуч] Коли стресу замало — нудьга й апатія. [ДІЯ: повзунок у центр] Помірний стрес — це еустрес: фокус, енергія, результат. [ДІЯ: повзунок праворуч] А далі — дистрес: помилки, тривога, виснаження. [КЛІК 1] І маленький факт: в оригінальному експерименті 1908 року вчені навчали… мишей, а цю красиву перевернуту U домалювали пізніше. Але висновок для лідера цілком реальний: тримати команду в зоні оптимуму, а не в нулі. [ДАЛІ]", "9": "Тепер перевірмо, скільки «важить» звичайне робоче життя. Це шкала Холмса–Рейха, і в ній кожна подія має бали. Уявімо працівника, чия компанія релокувалася. [ДІЯ: клікати картки по черзі] Перебудова бізнесу — 39. Змінилося фінансове становище — 38. Новий вид роботи — 36. Нові обов’язки — 29. Конфлікт із керівником — 23. Новий графік — 20. Переїзд — ще 20. І, припустімо, звільнення — 47. Разом — 252 бали за кілька місяців. А 300 автори шкали вважали зоною високого ризику для здоров’я. [КЛІК] І зверніть увагу на штамп: війни в шкалі 1967 року просто немає. [ДАЛІ]", "10": "А тепер — Україна. [КЛІК 1] За оцінкою ВООЗ, близько 10 мільйонів українців — це чверть населення — перебувають у зоні ризику проблем психічного здоров’я. [КЛІК 2] Уявімо, що ці сто точок — сто працюючих людей. За даними Gradus Research 2026 року, 26 із них оцінюють свій стрес як високий. [КЛІК 3] Ще 54 — як помірний. [КЛІК 4] А майже 40 зі ста готові звільнитися саме через вигорання. [ДАЛІ]", "11": "Але тут є пастка. [КЛІК 1] Ось 2025 рік: високий стрес у 33 % працівників. [КЛІК 2] А у 2026 — уже 26 %. Здається, стало краще? [КЛІК 3] Ні. Помірний стрес виріс до 54 %, а перевантаження як головний стресор — із 42 до 47 %. Дослідники пояснюють: люди не одужали, люди адаптувалися. Мовою Сельє — це масове перебування у фазі резистентності. Тієї самої, після якої, якщо нічого не робити, настає виснаження. [ДАЛІ]", "12": "І це не лише про людей — це про гроші. [КЛІК 1] У США вигорання одного працівника коштує компанії щонайменше 4000 доларів на рік. [КЛІК 2] Працівники з проблемами психічного здоров’я, які не отримують допомоги, на 50 % менш залучені в роботу. [КЛІК 3] Виснажені працівники дають індекс лояльності мінус 68, залучені — плюс 31. [КЛІК 4] А 58 % українців узагалі не мають доступу до психологічної підтримки на роботі. [ПАУЗА — екран гасне] Тож питання вже не «чи є стрес». Питання — як із нього виходити. [ДАЛІ]", "13": "І тут — головний поворот. [КЛІК 1] Вихід зі стресу — це не «відіспався на вихідних». Це процес. Я поєднала ідеї Сельє, Лазаруса, Зоннентаг і Фріц, Тедескі й Калхуна в п’ять етапів: зупинка, стабілізація, переоцінка, відновлення ресурсів і інтеграція. [КЛІК 2] І важливо: це не прямі сходи. Нова тривога чи погана новина можуть відкинути нас назад. Це норма. Мета — не уникнути відкатів, а скоротити шлях назад. [ДАЛІ]", "14": "Етап перший — зупинитися й помітити. Звучить просто, але у фазі резистентності ми переконані, що «все нормально». Сигнали варто шукати на чотирьох рівнях. [КЛІК 1] Тіло: сон, напруга, головний біль. [КЛІК 2] Емоції: дратівливість, тривога, відчуття «плоскості». [КЛІК 3] Думки: важко сфокусуватися, більше помилок. [КЛІК 4] Поведінка: прокрастинація, третя кава, ізоляція від колег. Без цього етапу жоден інструмент не спрацює — людина просто не вважає, що їй потрібна допомога. [ДАЛІ]", "15": "Етап другий — стабілізація. Стрес починається в тілі, тож і вихід починається з тіла. Давайте просто зараз, разом. [КЛІК 1 — старт кола] Вдих… два, три, чотири. І повільний видих… два, три, чотири, п’ять, шість. [ВЕСТИ ЗАЛ 3 ЦИКЛИ, ГОВОРИТИ ТИХІШЕ] Помітили? Подовжений видих допомагає нервовій системі перейти з мобілізації у відновлення. Сон, вода, рух, їжа, пауза від новин — це не дрібниці, а перший рятувальний круг. За цим самим принципом — спершу безпека, потім аналіз — працює перша психологічна допомога, якої, наприклад, навчали працівників «Укрзалізниці». [ДАЛІ]", "16": "Етап третій. Коли тіло стабілізоване, можна думати. Ключове питання: що з цього я можу контролювати? [КЛІК 1] Розкладімо картки. Новини, рішення керівництва, відключення світла, чужі емоції — не моє. [КЛІК 2] А мій план на день, мій сон, як я реагую і чи прошу про допомогу — моє. Лазарус і Фолкман описували дві стратегії: змінювати ситуацію, коли можемо, і змінювати ставлення до неї, коли не можемо. І українські дослідження підтверджують, що саме такі стратегії подолання є чинниками стресостійкості під час війни. [ДАЛІ]", "17": "Четвертий етап — відновлення ресурсів. Пережити гостру фазу ще не означає відновитися. [КЛІК 1] Зоннентаг і Фріц виділили чотири механізми: відключитися від роботи, розслабитися, опанувати щось нове і самому керувати своїм вільним часом. А модель BASIC Ph підказує шість каналів, через які ми набираємо сили: цінності, емоції, люди, уява, мислення й тіло. У кожного з нас свій головний канал. [КЛІК 2] І п’ятий етап — інтеграція. Не забути стрес, а вбудувати його у свою історію. Тедескі й Калхун назвали це посттравматичним зростанням: глибше цінування життя, ближчі стосунки, відчуття власної сили. Зростання не скасовує болю — воно відбувається поруч із ним. [ДАЛІ]", "18": "Чи працює ця модель для цілої організації? Подивімося на «Київстар». [КЛІК 1] 12 грудня 2023 року — кібератака, 24 мільйони абонентів без зв’язку. За даними СБУ, хакери були в системі щонайменше з травня. [КЛІК 2] Етапи перший і другий: керівництво разом зі СБУ свідомо вимикає мережу, щоб ізолювати загрозу. Це і є зупинка. [КЛІК 3] Далі — поетапно й публічно: увечері того ж дня частково запрацював фіксований зв’язок, 14 грудня почали повертати мобільний інтернет, 18-го — SMS. Регулярна комунікація повертала людям відчуття контролю. [КЛІК 4] І п’ятий етап — інтеграція: бюджет на 2024 рік перерозподілили на кібербезпеку. Збитки — близько 5 мільярдів гривень, але компанія вийшла з досвідом, а не лише з травмою. [ДАЛІ]", "19": "Ще чотири українські рішення — кожне про свій етап. [КЛІК 1] ПУМБ побачив в опитуванні коментарі про вигорання і запустив конфіденційний сервіс психологів: пілот на 1025 людей, оцінка 9,7 з 10, потім масштаб на 3000. [КЛІК 2] SoftServe на початку війни релокував тисячі людей — це коштувало 10 мільйонів доларів, — а потім боровся зі стигмою, і звернень по допомогу стало у 8 разів більше. І це успіх: люди перестали соромитися. [КЛІК 3] «Укрзалізниця» евакуювала понад 4 мільйони людей, навчила залізничників першої психологічної допомоги і підтримала 800 ветеранів, які повернулися на роботу. [КЛІК 4] А Gradus Research запровадив Mental Health Day — вихідний через виснаження без жодних пояснень. [КЛІК 5] Мій висновок: бізнес добре гасить пожежі, але найслабший етап — п’ятий, коли з кризи роблять висновки. [ДАЛІ]", "20": "Тож яка роль лідера? [КЛІК 1] Перше — кисневу маску спершу на себе: стрес лідера заразний, команда зчитує його швидше за слова. [КЛІК 2] Друге — психологічна безпека: 20 % українських працівників її не відчувають, а отже, навіть не скажуть, що їм погано. [КЛІК 3] І третє — лідер не рятівник, а архітектор умов: дає ясність, захищає ресурси й допомагає перетворити кризу на досвід. [КЛІК 4] Стрес неможливо прибрати з нашого життя. Але через нього можна навчитися проходити. Дякую за увагу! Буду рада вашим питанням."};
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+const stage = $('#stage');
+const slides = $$('.slide');
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let cur = -1, step = 0, locked = false;
+const curId = () => (slides[cur] ? slides[cur].id : '');
+const hooks = {};
+
+/* ---------- fit ---------- */
+function fit(){
+  const s = Math.min(innerWidth/1920, innerHeight/1080);
+  stage.style.transform = `translate(-50%,-50%) scale(${s})`;
+  stage._s = s;
+}
+addEventListener('resize', fit); fit();
+
+/* ---------- colour ---------- */
+const TEAL=[39,194,167], AMBER=[255,181,71], CORAL=[255,90,60];
+const mix=(a,b,t)=>a.map((v,i)=>Math.round(v+(b[i]-v)*t));
+function lvlColor(L){
+  const c = L<55 ? mix(TEAL,AMBER,Math.max(0,(L-25)/30)) : mix(AMBER,CORAL,Math.min(1,(L-55)/35));
+  return c;
+}
+const rgb=(c,a=1)=>`rgba(${c[0]},${c[1]},${c[2]},${a})`;
+
+/* ---------- FX: particles + pulse ---------- */
+const cv = $('#fx'), cx = cv.getContext('2d');
+const fx = {L:15, target:15, flat:0, flatT:0, breath:null, boost:0, override:null};
+const N = reduce ? 30 : 80;
+const parts = Array.from({length:N}, () => ({x:Math.random()*1920, y:Math.random()*1080, a:Math.random()*Math.PI*2, r:1.2+Math.random()*2}));
+const SP = 4, NS = Math.ceil(1920/SP)+1;
+const buf = new Float32Array(NS);
+let phase = 0, tPrev = performance.now(), acc = 0, T = 0;
+function ecg(p){
+  // p in [0,1)
+  const g=(c,w,h)=>h*Math.exp(-((p-c)**2)/(2*w*w));
+  return g(.12,.025,.12) - g(.30,.008,.18) + g(.325,.009,1) - g(.35,.009,.38) + g(.58,.045,.26);
+}
+function sample(dt){
+  const L = fx.L;
+  const rate = .75 + L/100*1.5;
+  phase += dt*rate;
+  if (fx.boost>0){ fx.boost -= dt*1.3; }
+  const p = phase % 1;
+  const calm = Math.max(0, 1 - L/28);
+  const A = (24 + L*1.35) * (1 + Math.max(0,fx.boost)*1.2);
+  let y = -ecg(p)*A*(1-calm*.85) + Math.sin(T*1.7)*16*calm;
+  if (L>60) y += (Math.random()-.5)*(L-60)*.32;
+  if (L>92 && Math.random()<.04) y += (Math.random()-.5)*120;
+  if (fx.breath!==null) y = -fx.breath*90 + (-ecg(p)*18);
+  y *= (1-fx.flat);
+  return y;
+}
+function frame(now){
+  const dt = Math.min(.05,(now - tPrev)/1000); tPrev = now; T += dt;
+  const tgt = fx.override!==null ? fx.override : fx.target;
+  fx.L += (tgt - fx.L) * Math.min(1, dt*1.6);
+  if (fx.flatT>0){ fx.flatT -= dt; fx.flat += (1-fx.flat)*Math.min(1,dt*10);} else fx.flat += (0-fx.flat)*Math.min(1,dt*4);
+  // pulse buffer
+  acc += dt*300;
+  while (acc >= SP){ acc -= SP; buf.copyWithin(0,1); buf[NS-1] = sample(SP/300); }
+  const col = lvlColor(fx.L);
+  cx.clearRect(0,0,1920,1080);
+  // particles
+  const sp = (.12 + fx.L/100*2.4) * (reduce?.3:1);
+  const jit = fx.L>50 ? (fx.L-50)/50*1.8 : 0;
+  cx.fillStyle = rgb(col,.32);
+  for (const q of parts){
+    q.a += (Math.random()-.5)*.08;
+    q.x += Math.cos(q.a)*sp + (Math.random()-.5)*jit;
+    q.y += Math.sin(q.a)*sp*.6 + (Math.random()-.5)*jit;
+    if(q.x<0)q.x+=1920; if(q.x>1920)q.x-=1920; if(q.y<0)q.y+=1080; if(q.y>1080)q.y-=1080;
+    cx.beginPath(); cx.arc(q.x,q.y,q.r,0,7); cx.fill();
+  }
+  // pulse line
+  const base = 960;
+  const grad = cx.createLinearGradient(0,0,1920,0);
+  grad.addColorStop(0, rgb(col,0)); grad.addColorStop(.25, rgb(col,.55)); grad.addColorStop(1, rgb(col,1));
+  cx.strokeStyle = grad; cx.lineWidth = 3.2; cx.lineJoin='round';
+  cx.shadowColor = rgb(col,.8); cx.shadowBlur = 16;
+  cx.beginPath();
+  for (let i=0;i<NS;i++){ const x=i*SP, y=base+buf[i]; i?cx.lineTo(x,y):cx.moveTo(x,y); }
+  cx.stroke(); cx.shadowBlur = 0;
+  cx.fillStyle = rgb(col,1); cx.beginPath(); cx.arc((NS-1)*SP-2, base+buf[NS-1], 6, 0, 7); cx.fill();
+  // meter
+  meterFill.style.height = Math.max(4, Math.min(100, fx.L)) + '%';
+  meterFill.style.background = rgb(col,1);
+  requestAnimationFrame(frame);
+}
+const meterFill = $('#meterFill');
+requestAnimationFrame(frame);
+fx.beat = () => { phase = Math.floor(phase) + .26; fx.boost = 1; };
+function setStress(v){ fx.target = v; }
+
+/* ---------- helpers ---------- */
+function tween(from, to, ms, fn, done){
+  const t0 = performance.now();
+  const ease = t => t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
+  (function f(now){ const t=Math.min(1,(now-t0)/ms); fn(from+(to-from)*ease(t)); if(t<1) requestAnimationFrame(f); else done&&done(); })(performance.now());
+}
+function countUp(el){
+  const to = +el.dataset.to, dec = (el.dataset.dec|0);
+  tween(0,to,1200,v=>el.textContent = v.toFixed(dec).replace('.',','));
+}
+
+/* ---------- navigation ---------- */
+const dotsNav = $('#dots');
+slides.forEach((s,i)=>{ const b=document.createElement('button'); b.type='button'; b.setAttribute('aria-label','Слайд '+(i+1)); b.onclick=e=>{e.stopPropagation(); go(i,0)}; dotsNav.appendChild(b); });
+const stepsOf = i => +slides[i].dataset.steps || 0;
+function applySteps(k){
+  const s = slides[cur];
+  $$('[data-step]', s).forEach(e => {
+    const on = +e.dataset.step <= k, was = e.classList.contains('on');
+    e.classList.toggle('on', on);
+    if (on && !was) $$('.count', e).forEach(countUp);
+  });
+  setStress(+s.dataset.stress);
+  const h = hooks[s.id]; h && h.step && h.step(k);
+}
+function go(i, k=0){
+  if (i<0 || i>=slides.length) return;
+  if (locked) return;
+  $('#blackout').classList.remove('on');
+  if (i !== cur){
+    if (cur>=0){ const h=hooks[curId()]; h&&h.leave&&h.leave(); slides[cur].classList.remove('active'); }
+    cur = i; const s = slides[cur];
+    s.classList.add('active');
+    fx.override = null;
+    setTimeout(()=>fx.beat(), 300);
+    history.replaceState(null,'','#slide-'+(cur+1));
+    $('#count').textContent = String(cur+1).padStart(2,'0')+'/'+slides.length;
+    $$('#dots button').forEach((b,j)=>b.classList.toggle('on',j===cur));
+    const h = hooks[s.id]; h && h.enter && h.enter();
+    renderNotes();
+  }
+  step = k; applySteps(step);
+}
+function next(){ if (locked) return; if (step < stepsOf(cur)){ step++; applySteps(step); } else go(cur+1,0); hideHint(); }
+function prev(){ if (locked) return; if (step>0){ step--; applySteps(step); } else if (cur>0) go(cur-1, stepsOf(cur-1)); }
+let hintT; function hideHint(){ $('#hint').style.opacity=0; }
+
+stage.addEventListener('click', e => {
+  if (e.target.closest('button,input,a,.chip,.drag,[contenteditable],.stair,.hex,#notes,#help')) return;
+  next();
+});
+let sx=null;
+stage.addEventListener('pointerdown', e=>{ if(e.pointerType==='touch') sx=e.clientX; });
+stage.addEventListener('pointerup', e=>{ if(sx===null) return; const dx=e.clientX-sx; sx=null; if(Math.abs(dx)>70){ dx<0?next():prev(); }});
+addEventListener('keydown', e => {
+  if (e.target.isContentEditable) { if (e.key==='Enter'||e.key==='Escape'){ e.preventDefault(); e.target.blur(); } return; }
+  const k = e.key;
+  if (['ArrowRight',' ','PageDown','Enter'].includes(k)){ e.preventDefault(); next(); }
+  else if (['ArrowLeft','PageUp','Backspace'].includes(k)){ e.preventDefault(); prev(); }
+  else if (k==='ArrowUp'||k==='ArrowDown'){ if (curId()==='s8'){ e.preventDefault(); hooks.s8.nudge(k==='ArrowUp'?5:-5); } }
+  else if (k==='f'||k==='F'||k==='а'||k==='А'){ document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen && document.documentElement.requestFullscreen().catch(()=>{}); }
+  else if (k==='b'||k==='B'||k==='и'||k==='И'){ $('#blackout').classList.toggle('on'); }
+  else if (k==='n'||k==='N'||k==='т'||k==='Т'){ $('#notes').classList.toggle('on'); renderNotes(); }
+  else if (k==='h'||k==='H'||k==='р'||k==='Р'||k==='?'){ $('#help').classList.toggle('on'); }
+  else if (k==='Home'){ locked=false; go(0,0); }
+  else if (k==='Escape'){ $('#help').classList.remove('on'); $('#notes').classList.remove('on'); if (hooks.s15 && hooks.s15.running) hooks.s15.stop(true); }
+});
+$('#help').addEventListener('click', ()=>$('#help').classList.remove('on'));
+function renderNotes(){
+  const t = (SCRIPT[String(cur+1)]||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/\[([^\]]+)\]/g,(m,x)=>{ const c = x.startsWith('КЛІК')?'c':x==='ДАЛІ'?'n':x.startsWith('ДІЯ')?'a':'p'; return `<span class="k ${c}">${x==='ДАЛІ'?'КЛІК → далі':x}</span>`; });
+  $('#notes').innerHTML = `<span class="M" style="color:var(--grey);font-size:16px">НОТАТКИ · СЛАЙД ${cur+1}</span><br>` + t;
+}
+addEventListener('hashchange', ()=>{ const m=location.hash.match(/^#slide-(\d+)$/); if(m){ const i=+m[1]-1; if(i!==cur) go(i,0);} });
+
+/* ---------- S1 ---------- */
+(() => {
+  const h = $('#s1 .mega'); const txt = h.textContent; h.textContent='';
+  [...txt].forEach((ch,i)=>{ const s=document.createElement('span'); s.textContent=ch; s.style.setProperty('--d',(i*.07+.25)+'s'); s.setAttribute('aria-hidden','true'); h.appendChild(s); });
+  const sp = $('#speaker');
+  try { const v = localStorage.getItem('napruga-speaker'); if (v) sp.textContent = v; } catch(e){}
+  sp.addEventListener('blur', ()=>{ try{ localStorage.setItem('napruga-speaker', sp.textContent.trim()); }catch(e){} });
+  hooks.s1 = { enter(){ const m=$('#s1 .mega'); m.style.display='none'; m.offsetHeight; m.style.display=''; } };
+})();
+
+/* ---------- S2 ---------- */
+(() => {
+  const qt = $('#quoteText'); const words = qt.textContent.split(' ');
+  qt.innerHTML = words.map((w,i)=>`<span class="w" style="--i:${i}">${w}</span>`).join(' ');
+  let sound=false, prevK=0, timer=null, ac=null;
+  $('#sound').onclick = e => { e.stopPropagation(); sound=!sound; e.target.textContent = 'Звук монітора: ' + (sound?'увімк.':'вимк.'); };
+  function beep(){ if(!sound) return; try{ ac = ac || new (window.AudioContext||window.webkitAudioContext)(); const o=ac.createOscillator(), g=ac.createGain(); o.frequency.value=980; g.gain.value=.06; o.connect(g); g.connect(ac.destination); o.start(); o.stop(ac.currentTime+1.4);}catch(e){} }
+  hooks.s2 = {
+    step(k){
+      const q=$('#quote'); q.classList.toggle('on',k>=1); q.classList.toggle('up',k>=2);
+      if (k===1 && prevK===0){ clearTimeout(timer); timer=setTimeout(()=>{ if(curId()==='s2'){ fx.flatT=1.6; beep(); } }, (words.length-1)*160+500); }
+      prevK=k;
+    },
+    leave(){ clearTimeout(timer); prevK=0; }
+  };
+})();
+
+/* ---------- S3 ---------- */
+(() => {
+  let sag=0, wy=-40;
+  const deck=$('#deck'), p1=$('#pier1'), p2=$('#pier2'), wt=$('#weight');
+  const deckY = x => { const t=(x-60)/1120; return (1-t)*(1-t)*220 + 2*(1-t)*t*(220+sag) + t*t*220; };
+  function draw(){ deck.setAttribute('d',`M60 220 Q620 ${220+sag} 1180 220`); p1.setAttribute('d',`M380 ${deckY(380)} L380 470`); p2.setAttribute('d',`M860 ${deckY(860)} L860 470`); wt.setAttribute('transform',`translate(0 ${deckY(620)-96})`); $('#crackMid').setAttribute('transform',`translate(0 ${sag*.5-20})`); }
+  let curSag=0;
+  function set(s, scaleW, g){
+    tween(curSag, s, 1200, v=>{ sag=v; draw(); }); curSag=s;
+    wt.firstElementChild.setAttribute('height', 90*scaleW); wt.firstElementChild.setAttribute('y', 90-90*scaleW);
+    $('#gaugeFill').style.height=g+'%'; $('#gaugeFill').style.background = g>60?'#27C2A7':g>40?'#FFB547':'#FF5A3C';
+    tween(+$('#gaugeVal').textContent.replace('%',''), g, 1200, v=>$('#gaugeVal').textContent=Math.round(v)+'%');
+  }
+  draw();
+  hooks.s3 = {
+    enter(){ curSag=0; sag=0; draw(); $('#gaugeFill').style.height='100%'; $('#gaugeVal').textContent='100%'; },
+    step(k){
+      const s=$('#s3');
+      if (k===0) setTimeout(()=>set(40,1,72),350);
+      else set(95,1.8,35);
+      s.classList.toggle('cracked',k>=1); s.classList.toggle('glow',k>=2);
+      fx.override = k===0 ? null : k>=2 ? 34 : 42;
+    }
+  };
+})();
+
+/* ---------- S5 ---------- */
+(() => {
+  const C=[960,430], R=380; let ang=0;
+  function draw(a){
+    const r=a*Math.PI/180, lx=C[0]-R*Math.cos(r), ly=C[1]+R*Math.sin(r), rx=C[0]+R*Math.cos(r), ry=C[1]-R*Math.sin(r);
+    const b=$('#beam'); b.setAttribute('x1',lx); b.setAttribute('y1',ly); b.setAttribute('x2',rx); b.setAttribute('y2',ry);
+    $('#panL').setAttribute('transform',`translate(${lx} ${ly})`); $('#panR').setAttribute('transform',`translate(${rx} ${ry})`);
+  }
+  draw(0);
+  hooks.s5 = {
+    step(k){
+      $$('#scale .cube').forEach(c=>c.classList.toggle('in', +c.dataset.drop<=k));
+      const target = k===1 ? 15 : 0;
+      tween(ang, target, k===1?1400:1200, v=>{ang=v; draw(v);});
+      const st=$('#state5');
+      st.classList.toggle('on',k>=1);
+      st.textContent = k>=2 ? 'ВИКЛИК' : 'СТРЕС';
+      st.style.color = k>=2 ? 'var(--teal)' : 'var(--coral)';
+      $('#tint').style.background = k===1 ? 'rgba(255,90,60,.08)' : k>=2 ? 'rgba(39,194,167,.07)' : 'transparent';
+      fx.override = k===1 ? 62 : k>=2 ? 38 : null;
+    },
+    leave(){ $('#tint').style.background='transparent'; }
+  };
+})();
+
+/* ---------- S7 ---------- */
+(() => {
+  const segs=['#segA','#segB','#segC'].map(s=>$(s));
+  segs.forEach(p=>{ const L=p.getTotalLength(); p.style.strokeDasharray=L; p.style.strokeDashoffset=L; p._L=L; });
+  let prevK=0;
+  hooks.s7 = {
+    step(k){
+      segs.forEach((p,i)=>p.style.strokeDashoffset = k>i ? 0 : p._L);
+      $('#exitPath').setAttribute('opacity', k>=4?1:0);
+      const s=$('#s7'); s.classList.toggle('desat', k===3);
+      if (k===1 && prevK===0){ stage.classList.remove('shake'); void stage.offsetWidth; setTimeout(()=>{stage.classList.add('shake');}, 250); }
+      fx.override = [null,68,74,92,58][k];
+      prevK=k;
+    },
+    leave(){ $('#s7').classList.remove('desat'); prevK=0; }
+  };
+})();
+
+/* ---------- S8 ---------- */
+(() => {
+  const X0=40, X1=1360;
+  const f = x => 470 - 400*Math.exp(-((x-700)**2)/(2*230*230));
+  let d=''; for(let x=X0;x<=X1;x+=10) d+=(x===X0?'M':'L')+x+' '+f(x).toFixed(1)+' ';
+  $('#ydCurve').setAttribute('d',d);
+  const r=$('#ydRange');
+  function upd(){
+    const v=+r.value, x=X0+(X1-X0)*v/100, y=f(x);
+    $('#ydDot').setAttribute('cx',x); $('#ydDot').setAttribute('cy',y); $('#ydGlow').setAttribute('cx',x); $('#ydGlow').setAttribute('cy',y);
+    let t,sub,c,tint;
+    if (v<30){ t='НУДЬГА'; sub='апатія, недостатня стимуляція'; c='#8A94A6'; tint='rgba(138,148,166,.10)'; }
+    else if (v<=70){ t='ЕУСТРЕС'; sub='фокус, енергія, результат'; c='#27C2A7'; tint='rgba(39,194,167,.12)'; }
+    else { t='ДИСТРЕС'; sub='тривога, помилки, виснаження'; c='#FF5A3C'; tint='rgba(255,90,60,.14)'; }
+    const lab=$('#ydLabel'); lab.firstChild.textContent=t; $('#ydSub').textContent=sub; lab.style.color=c;
+    lab.style.textAlign='left'; lab.style.left='130px'; lab.style.top='250px';
+    $('#ydDot').setAttribute('fill',c); $('#ydGlow').setAttribute('fill',c);
+    if (curId()==='s8'){ $('#tint').style.background=tint; fx.override = 10 + v*.9; }
+  }
+  r.addEventListener('input', upd); r.addEventListener('click', e=>e.stopPropagation());
+  r.addEventListener('keydown', e=>{ if(e.key==='ArrowLeft'||e.key==='ArrowRight'){ e.stopPropagation(); } });
+  upd();
+  hooks.s8 = { enter(){ upd(); }, step(){ upd(); }, leave(){ $('#tint').style.background='transparent'; }, nudge(dv){ r.value=Math.max(0,Math.min(100,+r.value+dv)); upd(); } };
+})();
+
+/* ---------- S9 ---------- */
+(() => {
+  const EV=[['Перебудова бізнесу',39],['Зміна фінансового становища',38],['Перехід на інший вид роботи',36],['Зміна обов’язків',29],['Проблеми з керівником',23],['Зміна графіка чи умов праці',20],['Зміна місця проживання',20],['Звільнення з роботи',47],['Вихід на пенсію',45],['Відпустка',13]];
+  const box=$('#chips'); let sum=0, shown=0;
+  EV.forEach(([t,v])=>{ const b=document.createElement('button'); b.type='button'; b.className='chip'; b.innerHTML=`<span>${t}</span><b>${v}</b>`; b.onclick=e=>{ e.stopPropagation(); b.classList.toggle('sel'); sum += b.classList.contains('sel')?v:-v; upd(); }; box.appendChild(b); });
+  const MAX=350, TOP=250, H=560;
+  $('#mark300').style.top = (TOP + H - H*300/MAX)+'px';
+  $('#mark300cap').style.top = (TOP + H - H*300/MAX - 18)+'px';
+  function upd(){
+    const from=shown; tween(from,sum,600,v=>{ $('#sum').textContent=Math.round(v); }); shown=sum;
+    const c = sum<150?'#27C2A7':sum<250?'#FFB547':'#FF5A3C';
+    $('#thermoFill').style.height = Math.min(100,sum/MAX*100)+'%'; $('#thermoFill').style.background=c; $('#sum').style.color=c;
+    if (curId()==='s9') fx.override = Math.min(97, 55 + sum/300*42);
+  }
+  $('#reset').onclick=e=>{ e.stopPropagation(); $$('.chip',box).forEach(c=>c.classList.remove('sel')); sum=0; upd(); };
+  upd();
+  hooks.s9 = { enter(){ upd(); } };
+})();
+
+/* ---------- S10 ---------- */
+(() => {
+  const g=$('#grid100'); for(let i=0;i<100;i++) g.appendChild(document.createElement('i'));
+  const dots=$$('i',g);
+  const order=[...Array(100).keys()].sort((a,b)=>((a*37)%100)-((b*37)%100));
+  const leavers=new Set([...Array(100).keys()].filter(i=>((i*61+17)%100)<40));
+  hooks.s10 = {
+    step(k){
+      dots.forEach((d,i)=>{
+        const rank=order.indexOf(i);
+        d.style.transitionDelay = (k>=2 ? (rank%26)*25 : 0)+'ms';
+        d.classList.toggle('c', k>=2 && i<26);
+        d.classList.toggle('a', k>=3 && i>=26 && i<80);
+        d.classList.toggle('leave', k>=4 && leavers.has(i));
+      });
+      fx.override = [86,88,90,92,95][k];
+    }
+  };
+})();
+
+/* ---------- S11 ---------- */
+(() => {
+  const D=[[33,26],[49,54],[42,47]], K=9; let shown=[0,0,0];
+  hooks.s11 = {
+    step(k){
+      D.forEach(([a,b],i)=>{
+        const v = k===0?0 : k===1?a : b;
+        $('#b'+i).style.height = v*K+'px';
+        $('#b'+i).style.background = k>=2 ? 'var(--amber)' : 'var(--grey)';
+        $('#v'+i).style.bottom = (300 + v*K + 14)+'px';
+        const g=$('#g'+i); g.style.height=a*K+'px'; g.style.opacity = k>=2?1:0;
+        const el=$('#v'+i), from=shown[i]; tween(from,v,1200,x=>el.textContent=Math.round(x)+'%'); shown[i]=v;
+      });
+      $('#yr11').textContent = k===0?'' : k===1?'2025' : '2026';
+      $('#yr11').style.color = k>=2?'var(--amber)':'var(--grey)';
+      $('#s11').classList.toggle('strike', k>=3);
+      fx.override = k>=3 ? 96 : null;
+    },
+    leave(){ shown=[0,0,0]; }
+  };
+})();
+
+/* ---------- S12 ---------- */
+(() => {
+  let t=null;
+  hooks.s12 = {
+    step(k){
+      $$('#s12 .tile').forEach(c=>c.classList.toggle('flipped', +c.dataset.flip<=k));
+      clearTimeout(t); $('#blackout').classList.remove('on');
+      if (k===4){ t=setTimeout(()=>{ if(curId()!=='s12') return; stage.classList.add('glitch'); setTimeout(()=>{ stage.classList.remove('glitch'); $('#blackout').classList.add('on'); fx.flatT=2; }, 520); }, 1600); }
+    },
+    leave(){ clearTimeout(t); stage.classList.remove('glitch'); }
+  };
+})();
+
+/* ---------- S13 ---------- */
+$$('#s13 .stair').forEach(s=>s.addEventListener('click',e=>{ e.stopPropagation(); go(+s.dataset.go,0); }));
+
+/* ---------- S14 ---------- */
+hooks.s14 = {
+  step(k){
+    const s=$('#s14'); s.classList.toggle('scanning', k>=1);
+    const ys=[220,270,420,490,660]; $('#scanner').style.top = ys[k]+'px';
+  }
+};
+
+/* ---------- S15 breathing ---------- */
+(() => {
+  const B=$('#breath'), tx=$('#breathTxt'), nn=$('#breathN'), s=$('#s15');
+  let raf=null, t0=0;
+  const IN=4, OUT=6, CYC=3, LEN=IN+OUT;
+  function loop(now){
+    const t=(now-t0)/1000;
+    if (t >= LEN*CYC){ stop(false); return; }
+    const c=Math.floor(t/LEN), r=t-c*LEN;
+    let v, label, left;
+    if (r<IN){ v=Math.sin((r/IN)*Math.PI/2); label='Вдих'; left=Math.ceil(IN-r); }
+    else { v=Math.cos(((r-IN)/OUT)*Math.PI/2); label='Видих'; left=Math.ceil(OUT-(r-IN)); }
+    B.style.transform=`scale(${.55+.45*v})`; tx.textContent=label+' · '+left; nn.textContent=(c+1)+' / '+CYC;
+    fx.breath = v;
+    raf=requestAnimationFrame(loop);
+  }
+  function start(){ stop(false,true); s.classList.remove('done'); s.classList.add('breathing'); locked=true; hooks.s15.running=true; fx.override=20; t0=performance.now(); raf=requestAnimationFrame(loop); }
+  function stop(aborted, silent){
+    cancelAnimationFrame(raf); raf=null; fx.breath=null; locked=false; hooks.s15.running=false;
+    s.classList.remove('breathing');
+    if (!silent){ s.classList.add('done'); tx.textContent = aborted?'Пауза':'Видихнули'; nn.textContent='3 / 3'; B.style.transform='scale(.62)'; fx.override=30; }
+  }
+  $('#again').onclick=e=>{ e.stopPropagation(); start(); };
+  hooks.s15 = {
+    running:false, stop,
+    step(k){ if (k===1){ start(); } else { stop(false,true); s.classList.remove('done'); tx.textContent='Готові?'; nn.textContent='клік — старт'; B.style.transform='scale(.55)'; } },
+    leave(){ if(raf) stop(true,true); }
+  };
+})();
+
+/* ---------- S16 cards ---------- */
+(() => {
+  const CARDS=[['новини',0],['рішення керівництва',0],['відключення світла',0],['чужі емоції',0],['мій план на день',1],['мій сон',1],['як я реагую',1],['попросити про допомогу',1]];
+  const scatter=[[760,330],[1250,360],[700,700],[1220,760],[1000,280],[1460,560],[860,520],[1120,600]];
+  const outer=[[960,250],[1290,500],[960,870],[700,640]];
+  const inner=[[960,470],[960,540],[960,610],[960,680]];
+  const box=$('#cards16'); const els=[];
+  CARDS.forEach(([t,m],i)=>{ const d=document.createElement('div'); d.className='drag'; d.textContent=t; d.style.setProperty('--fd',(i*.4)+'s'); d._m=m; box.appendChild(d); els.push(d); drag(d); });
+  function place(d,[x,y]){ d.style.left=x+'px'; d.style.top=y+'px'; }
+  function drag(d){
+    let ox,oy,sx,sy,on=false;
+    d.addEventListener('pointerdown',e=>{ e.stopPropagation(); on=true; d.classList.add('dragging'); d.setPointerCapture(e.pointerId); sx=e.clientX; sy=e.clientY; ox=parseFloat(d.style.left); oy=parseFloat(d.style.top); d._manual=true; });
+    d.addEventListener('pointermove',e=>{ if(!on) return; const s=stage._s||1; place(d,[ox+(e.clientX-sx)/s, oy+(e.clientY-sy)/s]); });
+    d.addEventListener('pointerup',()=>{ on=false; d.classList.remove('dragging'); });
+    d.addEventListener('click',e=>e.stopPropagation());
+  }
+  hooks.s16 = {
+    enter(){ els.forEach(d=>d._manual=false); },
+    step(k){
+      let o=0,n=0;
+      els.forEach((d,i)=>{
+        if (d._manual) return;
+        if (!d._m) place(d, k>=1 ? outer[o++] : scatter[i]);
+        else place(d, k>=2 ? inner[n++] : scatter[i]);
+        d.classList.toggle('isMine', d._m && k>=2);
+      });
+      $('#s16').classList.toggle('mine', k>=2);
+    }
+  };
+})();
+
+/* ---------- S17 ---------- */
+(() => {
+  const INFO=[['Belief — цінності','опора на сенс і цінності → нагадування про місію компанії та реальний внесок команди'],
+    ['Affect — емоції','вираження почуттів → дозвіл говорити про емоції на робочих зустрічах'],
+    ['Social — люди','підтримка й приналежність → peer-підтримка, наставництво, спільні активності'],
+    ['Imagination — уява','творчість, гумор, мрії → хакатони, сценарії «а що, якби…»'],
+    ['Cognition — мислення','інформація й планування → прозора комунікація, плани B і C'],
+    ['Physiology — тіло','рух, сон, відпочинок → регулярні перерви, спорт, гнучкий графік']];
+  $$('#s17 .hex').forEach(h=>{
+    const show=()=>{ $$('#s17 .hex').forEach(x=>x.classList.remove('act')); h.classList.add('act'); const [a,b]=INFO[+h.dataset.k]; $('#hexInfo').innerHTML=`<b>${a}:</b> ${b}`; };
+    h.addEventListener('mouseenter',show); h.addEventListener('click',e=>{e.stopPropagation(); show();});
+  });
+  const fl=$('#flies'); for(let i=0;i<14;i++){ const f=document.createElement('i'); f.className='fly'; f.style.left=(60+Math.random()*560)+'px'; f.style.top=(560+Math.random()*60)+'px'; f.style.setProperty('--t',(4+Math.random()*4)+'s'); f.style.setProperty('--dl',(Math.random()*5)+'s'); fl.appendChild(f); }
+  hooks.s17 = { step(k){ $('#right17').classList.toggle('on',k>=2); } };
+})();
+
+/* ---------- S18 ---------- */
+(() => {
+  let prevK=0;
+  hooks.s18 = {
+    step(k){
+      const n=[4,0,1,3,4][k];
+      $$('#signal i').forEach((b,i)=>b.classList.toggle('off', i>=n));
+      if (k===1 && prevK===0){ const f=$('#flash'); f.style.opacity=.85; setTimeout(()=>f.style.opacity=0,450); }
+      fx.override = [null,64,46,34,26][k];
+      prevK=k;
+    },
+    leave(){ prevK=0; }
+  };
+})();
+
+/* ---------- S19 ---------- */
+hooks.s19 = { step(k){ $$('#s19 .card').forEach(c=>c.classList.toggle('flipped', +c.dataset.flip<=k)); $('#s19').classList.toggle('audit', k>=5); } };
+
+/* ---------- S20 ---------- */
+hooks.s20 = { step(k){ $('#s20').classList.toggle('finale', k>=4); $('#t20').style.opacity = k>=4?0:1; fx.override = k>=4 ? 6 : null; } };
+
+/* ---------- start ---------- */
+const m = location.hash.match(/^#slide-(\d+)$/);
+go(m ? Math.max(0,Math.min(slides.length-1,+m[1]-1)) : 0, 0);
+setTimeout(hideHint, 9000);
+})();
+</script>
+</body>
+</html>
